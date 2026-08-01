@@ -2608,7 +2608,7 @@ ${THEME_CSS}
   const THOUGHT_TAG_NAMES = ['thinking', 'think', 'cot', 'reasoning', 'meow', 'think_nya~', 'konatan_planning~', 'draft_notes', 'draft', 'preparation'];
   const THOUGHT_TAG_RE = THOUGHT_TAG_NAMES.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   const THOUGHT_OPEN_RE = '<(?:' + THOUGHT_TAG_RE + ')>';
-  const THOUGHT_CLOSE_RE = '<\\/(?:' + THOUGHT_TAG_RE + ')>';
+  const THOUGHT_CLOSE_RE = '(?:<\\/(?:' + THOUGHT_TAG_RE + ')>|<!--\\s*end_of_梳理\\s*-->)';
 
   function bareThoughtMatch(raw) {
     const m = new RegExp('^([\\s\\S]*?)' + THOUGHT_CLOSE_RE, 'i').exec(raw);
