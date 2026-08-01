@@ -3112,6 +3112,10 @@ ${THEME_CSS}
     { key: 'beechey', name: '比奇越冬', time: '1845年12月22日 11:00 · 极夜', region: '比奇越冬海域', stats: [75, 75, 65], blurb: '第一个冬天，在比奇岛暂作停留，休整船队' },
     { key: 'beset', name: '困冰之初', time: '1846年9月30日 14:00 · 白夜', region: '维多利亚困冰区', stats: [60, 60, 50], blurb: '秋日，船被维多利亚海峡的冰困住了' },
     { key: 'longnight', name: '困冰长夜', time: '1846年12月20日 15:00 · 极夜', region: '维多利亚困冰区', stats: [45, 50, 35], blurb: '第二个冬天，船在维多利亚海峡丝毫未动' },
+    { key: 'nosummer', name: '夏汛落空', time: '1847年8月10日 14:00 · 极昼', region: '维多利亚困冰区', stats: [35, 40, 30], blurb: '盼了一整个夏天的开冰没有来，全队认清要在冰里熬第三个冬天' },
+    { key: 'thirdwinter', name: '困冰三年', time: '1848年2月15日 16:00 · 极夜', region: '维多利亚困冰区', stats: [25, 30, 15], blurb: '第三个冬天最深处，存粮见底，坏血病在下层甲板蔓延' },
+    { key: 'march', name: '弃船南撤', time: '1848年5月10日 12:00 · 白夜', region: '威廉王岛', stats: [15, 22, 15], place: '南撤队伍 · 营帐', blurb: '两船已弃，全队拖着雪橇沿西岸南下，指望走到巴克河' },
+    { key: 'return', name: '折返回船', time: '1848年7月20日 16:00 · 极昼', region: '维多利亚困冰区', stats: [18, 28, 20], blurb: '南边走不通，一部分人折返回船，靠舱里剩下的存粮续命' },
   ];
 
   let openingView = 'cards';
@@ -3199,7 +3203,7 @@ ${THEME_CSS}
       }
       const stat = {
         时间: stage.time,
-        地点: stage.region + ' · ' + f.ship + ' · 下层甲板',
+        地点: stage.region + ' · ' + (stage.place || f.ship + ' · 下层甲板'),
         身处: '随队',
         物资: stage.stats[0], 健康: stage.stats[1], 士气: stage.stats[2],
         狩猎技巧: 0,
