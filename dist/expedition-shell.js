@@ -2864,14 +2864,21 @@ ${THEME_CSS}
   function fetchStoryMessages() {
     const lastId = getLastMessageId();
     if (lastId == null || lastId < 0) return null;
-    return getChatMessages('0-' + lastId, { hide_state: 'unhidden' });
+    // 不用hide_state:'unhidden': 新生成楼层is_system缺失(undefined)会被其严格比较误滤掉
+    const msgs = getChatMessages('0-' + lastId);
+    return msgs ? msgs.filter(m => m.is_hidden !== true) : null;
+  }
+
+  function userDisplayText(raw) {
+    const m = String(raw).match(/<本轮用户输入>\s*([\s\S]*?)\s*<\/本轮用户输入>/);
+    return m ? m[1] : raw;
   }
 
   function cachedTurnData(m) {
     let data = storyHtmlCache.get(m.message_id);
     if (data === undefined) {
       data = m.role === 'user'
-        ? { role: 'user', text: m.message, thought: '', mid: m.message_id }
+        ? { role: 'user', text: userDisplayText(m.message), thought: '', mid: m.message_id }
         : { role: 'assistant', text: extractMainText(m.message), thought: (m.extra && m.extra.reasoning) || extractThought(m.message), mid: m.message_id };
       storyHtmlCache.set(m.message_id, data);
     }
@@ -3852,6 +3859,15 @@ ${THEME_CSS}
   eventOn(tavern_events.CHAT_CHANGED, onChatChanged);
 
   eventOn(tavern_events.MESSAGE_SWIPED, () => { if (!isShellVisible()) renderEntry(); });
+
+  // 数据库等插件改写楼层(如user消息规划改写)后刷新显示
+  const onMsgMutated = mid => {
+    const id = Number(mid);
+    if (Number.isInteger(id)) storyHtmlCache.delete(id); else storyHtmlCache.clear();
+    if (isShellVisible() && !sending && !delMode && !editState) renderStoryLog();
+  };
+  eventOn(tavern_events.MESSAGE_EDITED, onMsgMutated);
+  eventOn(tavern_events.MESSAGE_UPDATED, onMsgMutated);
 
   // ════ init ════
   async function init() {
