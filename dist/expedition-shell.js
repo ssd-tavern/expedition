@@ -3197,7 +3197,8 @@ ${THEME_CSS}
         user档案: { 船: f.ship, 职位: f.role, 外貌: f.look.trim(), 背景: f.past.trim() },
       };
       if (typeof insertOrAssignVariables !== 'function') throw new Error('环境缺少 insertOrAssignVariables, 无法写入自定义开局, 请更新酒馆助手');
-      await insertOrAssignVariables({ stat_data: stat }, { type: 'chat' });
+      // MVU变量链挂在楼层级变量上, 写chat级不会被MVU读到
+      await insertOrAssignVariables({ stat_data: stat }, { type: 'message', message_id: 0 });
       lastStat = stat; prevStat = null;
       openingConfirmed = true;
       openingView = 'cards';
