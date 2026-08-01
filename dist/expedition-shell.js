@@ -3103,6 +3103,7 @@ ${THEME_CSS}
   ];
 
   let openingView = 'cards';
+  const CUSTOM_SWIPE = 1;
   const customForm = { ship: '幽冥号', role: null, stage: null, look: '', past: '' };
 
   function customCardHtml(selectable, isCur) {
@@ -3179,10 +3180,10 @@ ${THEME_CSS}
     customBusy = true;
     try {
       const info = readOpenings();
-      if (info && info.cur !== 0) {
-        await switchOpening(0);
+      if (info && info.cur !== CUSTOM_SWIPE) {
+        await switchOpening(CUSTOM_SWIPE);
         const check = readOpenings();
-        if (check && check.cur !== 0) throw new Error('未能切回入口面板, 请到开场白页手动选回第一页再试');
+        if (check && check.cur !== CUSTOM_SWIPE) throw new Error('未能切到自定义开局页, 请手动划到第二页开场白再试');
       }
       const stat = {
         时间: stage.time,
@@ -3277,8 +3278,8 @@ ${THEME_CSS}
     const { items, cur } = openingItems();
     const { mainCards, ifCards } = groupOpeningCards(items, cur, selectable);
     const sect = lab => `<div class="exp-open-sect"><span class="exp-open-sect-lab">${lab}</span></div>`;
-    const customGroup = items.length && (selectable || cur === 0)
-      ? sect('自定义') + `<div class="exp-open-cards custom-solo">${customCardHtml(selectable, !selectable && cur === 0)}</div>`
+    const customGroup = items.length && (selectable || cur === CUSTOM_SWIPE)
+      ? sect('自定义') + `<div class="exp-open-cards custom-solo">${customCardHtml(selectable, !selectable && cur === CUSTOM_SWIPE)}</div>`
       : '';
     let cardsHtml;
     if (!items.length) cardsHtml = '<div class="exp-open-empty">聊天尚未开始，暂无可选开场</div>';
@@ -3306,7 +3307,7 @@ ${THEME_CSS}
         if (card.dataset.custom) {
           openingView = 'custom';
           const info = readOpenings();
-          if (info && info.cur !== 0) { switchOpening(0); return; }
+          if (info && info.cur !== CUSTOM_SWIPE) { switchOpening(CUSTOM_SWIPE); return; }
           renderOpeningTab();
           return;
         }
