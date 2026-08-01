@@ -2668,9 +2668,9 @@ ${THEME_CSS}
   const PRESET_STRIP_TAGS = ['details', 'summary', 'tucao', 'danmu', 'konatan_chat', 'progress', 'current_event',
     'htmlcontent', 'guifan', 'done', 'disclaimer', 'w2g', 'VariableCheck', 'memo', 'draft', 'Interleaving',
     'choice', 'safe', 'theater', 'recap', 'background', 'parallel_world', 'meow_FM', 'time_format',
-    'aftertalk', 'Shiosai', 'snow', 'quote', 'htm1fenge', 'math', 'finish', 'WF', 'style', 'script'];
+    'aftertalk', 'Shiosai', 'snow', 'quote', 'htm1fenge', 'math', 'finish', 'WF', 'style', 'script', 'scene'];
   const PRESET_UNWRAP_TAGS = ['content', 'writing_process', 'Chain_of_Thought', 'SexualScene', 'thought', 'os',
-    'font', 'span', 'p', 'div', 'b', 'i', 'em', 'strong', 'hr', 'img', 'a', 'small', 'big', 'u', 'center', 'mark'];
+    'font', 'span', 'p', 'div', 'b', 'i', 'em', 'strong', 'hr', 'img', 'a', 'small', 'big', 'u', 'center', 'mark', '正文'];
   const PRESET_STRIP_RE = new RegExp('<(' + PRESET_STRIP_TAGS.join('|') + ')(?:\\s[^>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>|$)', 'gi');
   const PRESET_UNWRAP_RE = new RegExp('<\\/?(?:' + PRESET_UNWRAP_TAGS.join('|') + ')(?:\\s[^>]*?)?\\s*\\/?>', 'gi');
   function stripPresetNoise(text) {
@@ -2684,7 +2684,7 @@ ${THEME_CSS}
       .replace(/^\s*###\s*正文\s*$/gm, '');
   }
 
-  const MAIN_TAG_NAMES = ['maintext', 'content'];
+  const MAIN_TAG_NAMES = ['maintext', 'content', '正文'];
   function findMainBlock(s) {
     for (const tag of MAIN_TAG_NAMES) {
       const re = new RegExp('<' + tag + '(?:\\s[^>]*)?>', 'gi');
