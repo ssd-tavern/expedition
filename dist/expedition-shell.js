@@ -1422,9 +1422,9 @@ ${THEME_CSS}
 
   function raiseAcuUi() {
     const v2 = doc.getElementById('acu-app-v2');
-    if (v2 && v2.style.zIndex !== '9200') v2.style.zIndex = '9200';
+    if (v2 && v2.style.zIndex !== '9200') v2.style.setProperty('z-index', '9200', 'important');
     doc.querySelectorAll('.auto-card-updater-popup').forEach(el => {
-      if (el.style.zIndex !== '9200') el.style.zIndex = '9200';
+      if (el.style.zIndex !== '9200') el.style.setProperty('z-index', '9200', 'important');
     });
   }
 
