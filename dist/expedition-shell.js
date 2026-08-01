@@ -1420,11 +1420,19 @@ ${THEME_CSS}
     }
   }
 
+  function raiseAcuUi() {
+    const v2 = doc.getElementById('acu-app-v2');
+    if (v2 && v2.style.zIndex !== '9200') v2.style.zIndex = '9200';
+    doc.querySelectorAll('.auto-card-updater-popup').forEach(el => {
+      if (el.style.zIndex !== '9200') el.style.zIndex = '9200';
+    });
+  }
+
   function watchAcuClose() {
     if (acuHiTimer) clearInterval(acuHiTimer);
     let seen = false, tries = 0;
     acuHiTimer = setInterval(() => {
-      if (acuUiOpen()) { seen = true; return; }
+      if (acuUiOpen()) { seen = true; raiseAcuUi(); return; }
       if (seen || ++tries > 25) {
         clearInterval(acuHiTimer); acuHiTimer = null;
         setAcuNavActive(false);
@@ -1441,6 +1449,7 @@ ${THEME_CSS}
         if (api && typeof api.openSettings === 'function') api.openSettings();
         else return;
       }
+      raiseAcuUi();
       setAcuNavActive(true);
       watchAcuClose();
     } catch (e) { console.warn('[航海日志] 打开数据库插件界面失败', e); }
