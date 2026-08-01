@@ -3162,6 +3162,12 @@ ${THEME_CSS}
     if (!stage || !role) { if (hint) hint.textContent = '请先选好职位与登船的时节'; return; }
     customBusy = true;
     try {
+      const info = readOpenings();
+      if (info && info.cur !== 0) {
+        await switchOpening(0);
+        const check = readOpenings();
+        if (check && check.cur !== 0) throw new Error('未能切回入口面板, 请到开场白页手动选回第一页再试');
+      }
       const stat = {
         时间: stage.time,
         地点: stage.region + ' · ' + f.ship + ' · 下层甲板',
@@ -3281,7 +3287,13 @@ ${THEME_CSS}
     panel.querySelectorAll('.exp-open-card.sel').forEach(card => {
       card.addEventListener('click', () => {
         if (openingBusy) return;
-        if (card.dataset.custom) { openingView = 'custom'; renderOpeningTab(); return; }
+        if (card.dataset.custom) {
+          openingView = 'custom';
+          const info = readOpenings();
+          if (info && info.cur !== 0) { switchOpening(0); return; }
+          renderOpeningTab();
+          return;
+        }
         card.classList.add('busy');
         chooseOpening(+card.dataset.swipe);
       });
