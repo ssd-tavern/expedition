@@ -2883,12 +2883,19 @@ ${THEME_CSS}
     return m ? m[1] : raw;
   }
 
+  // 酒馆助手把swipe_info[swipe_id]当extra返回, 思维链藏在其内层extra里; 无swipe_info时才是消息extra本身
+  function nativeReasoning(m) {
+    const ex = m.extra;
+    if (!ex) return '';
+    return ex.reasoning || (ex.extra && ex.extra.reasoning) || '';
+  }
+
   function cachedTurnData(m) {
     let data = storyHtmlCache.get(m.message_id);
     if (data === undefined) {
       data = m.role === 'user'
         ? { role: 'user', text: userDisplayText(m.message), thought: '', mid: m.message_id }
-        : { role: 'assistant', text: extractMainText(m.message), thought: (m.extra && m.extra.reasoning) || extractThought(m.message), mid: m.message_id };
+        : { role: 'assistant', text: extractMainText(m.message), thought: nativeReasoning(m) || extractThought(m.message), mid: m.message_id };
       storyHtmlCache.set(m.message_id, data);
     }
     return data;
