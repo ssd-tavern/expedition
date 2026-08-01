@@ -2608,13 +2608,18 @@ ${THEME_CSS}
   const THOUGHT_TAG_NAMES = ['thinking', 'think', 'cot', 'reasoning', 'meow', 'think_nya~', 'konatan_planning~', 'draft_notes', 'draft', 'preparation'];
   const THOUGHT_TAG_RE = THOUGHT_TAG_NAMES.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   const THOUGHT_OPEN_RE = '<(?:' + THOUGHT_TAG_RE + ')>';
-  const THOUGHT_CLOSE_RE = '(?:<\\/(?:' + THOUGHT_TAG_RE + ')>|<!--\\s*end_of_梳理\\s*-->)';
+  const THOUGHT_CLOSE_RE = '(?:<\\/(?:' + THOUGHT_TAG_RE + ')>|<!--\\s*(?:end_of_梳理|1·思考结束|end_of_Subtext_think)\\s*-->|我将进行符合需求的创作：|#{1,6}\\s*正式创作)';
+  // 明月秋青系: 思维链以[metacognition]/[love_qkll]开头, 可能没有任何闭合标记直接接正文
+  const THOUGHT_HEAD_RE = /^\s*\[(?:metacognition|love_qkll)\]/i;
 
   function bareThoughtMatch(raw) {
     const m = new RegExp('^([\\s\\S]*?)' + THOUGHT_CLOSE_RE, 'i').exec(raw);
-    if (!m) return null;
-    if (/<maintext>|<content>|<options>/i.test(m[0])) return null;
-    return { bodyEnd: m[1].length, tagEnd: m[0].length };
+    if (m && !/<maintext>|<content>|<options>/i.test(m[0])) return { bodyEnd: m[1].length, tagEnd: m[0].length };
+    if (THOUGHT_HEAD_RE.test(raw)) {
+      const b = String(raw).search(/<maintext>|<content>/i);
+      if (b > 0) return { bodyEnd: b, tagEnd: b };
+    }
+    return null;
   }
 
   function stripThink(raw) {
@@ -2643,7 +2648,7 @@ ${THEME_CSS}
     }
     if (!parts.length) {
       const bare = bareThoughtMatch(raw);
-      if (bare) parts.push(raw.slice(0, bare.bodyEnd).trim());
+      if (bare) parts.push(raw.slice(0, bare.bodyEnd).replace(THOUGHT_HEAD_RE, '').trim());
     }
     return parts.join('\n\n').trim();
   }
