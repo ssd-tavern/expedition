@@ -704,9 +704,9 @@ ${THEME_CSS}
 #exp-shell-root #exp-story-diff{left:58px;}
 #exp-shell-root #exp-story-regen{left:116px;}
 #exp-shell-root #exp-story-send{right:116px;}
-#exp-shell-root .exp-story-input textarea{flex:0 1 auto;width:min(760px,calc(100% - 348px));resize:none;border:1px solid rgba(var(--gold-rgb),.22);border-radius:12px;padding:12px 15px;font-family:inherit;font-size:15px;line-height:1.6;min-height:50px;max-height:146px;overflow-y:auto;background:var(--panel);color:var(--text);transition:border-color .15s;}
-#exp-shell-root .exp-story-input textarea:focus{outline:none;border-color:var(--border-hover);}
-#exp-shell-root .exp-story-input textarea::placeholder{color:var(--text-faint);}
+#exp-shell-root .exp-story-input textarea{flex:0 1 auto;width:min(760px,calc(100% - 348px));resize:none;border:1px solid rgba(var(--gold-rgb),.22)!important;border-radius:12px;padding:12px 15px;font-family:inherit;font-size:15px;line-height:1.6;min-height:50px;max-height:146px;overflow-y:auto;background:var(--panel)!important;color:var(--text)!important;transition:border-color .15s;}
+#exp-shell-root .exp-story-input textarea:focus{outline:none;border-color:var(--border-hover)!important;}
+#exp-shell-root .exp-story-input textarea::placeholder{color:var(--text-faint)!important;}
 #exp-shell-root .exp-iconbtn{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:1px solid rgba(var(--gold-rgb),.3);color:var(--gold);transition:.15s;}
 #exp-shell-root .exp-iconbtn:hover{border-color:var(--gold-hi);color:var(--gold-hi);background:rgba(var(--gold-rgb),.08);transform:translateY(-2px);}
 #exp-shell-root .exp-iconbtn svg{width:20px;height:20px;}
@@ -727,8 +727,8 @@ ${THEME_CSS}
 #exp-shell-root .exp-del-btn:disabled{opacity:.4;cursor:default;background:transparent;border-color:rgba(192,85,74,.5);}
 #exp-shell-root .exp-story-turn.user.editing{text-align:left;}
 #exp-shell-root .exp-story-edit{width:100%;}
-#exp-shell-root .exp-story-edit textarea{width:100%;resize:none;border:1px solid rgba(var(--accent-rgb,var(--gold-rgb)),.4);border-radius:11px;padding:10px 14px;font-family:inherit;font-size:15px;line-height:1.85;min-height:54px;max-height:40vh;overflow-y:auto;background:var(--panel);color:var(--text);transition:border-color .15s;}
-#exp-shell-root .exp-story-edit textarea:focus{outline:none;border-color:var(--border-hover);}
+#exp-shell-root .exp-story-edit textarea{width:100%;resize:none;border:1px solid rgba(var(--accent-rgb,var(--gold-rgb)),.4)!important;border-radius:11px;padding:10px 14px;font-family:inherit;font-size:15px;line-height:1.85;min-height:54px;max-height:40vh;overflow-y:auto;background:var(--panel)!important;color:var(--text)!important;transition:border-color .15s;}
+#exp-shell-root .exp-story-edit textarea:focus{outline:none;border-color:var(--border-hover)!important;}
 #exp-shell-root .exp-story-edit-row{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;}
 #exp-shell-root .exp-edit-btn.primary{border-color:rgba(var(--gold-rgb),.55);color:var(--gold-hi);}
 #exp-shell-root .exp-story-turn.user{touch-action:manipulation;}
@@ -848,9 +848,9 @@ ${THEME_CSS}
 #exp-shell-root .exp-custom-opt b{font-size:15px;font-weight:600;}
 #exp-shell-root .exp-custom-opt i{font-style:normal;font-size:12.5px;color:var(--gold-soft);}
 #exp-shell-root .exp-custom-opt span{font-size:13.5px;color:var(--text-faint);line-height:1.5;}
-#exp-shell-root .exp-custom input,#exp-shell-root .exp-custom textarea{width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid rgba(var(--gold-rgb),.22);border-radius:9px;background:var(--panel);color:var(--text);font-family:inherit;font-size:14.5px;line-height:1.6;}
+#exp-shell-root .exp-custom input,#exp-shell-root .exp-custom textarea{width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid rgba(var(--gold-rgb),.22)!important;border-radius:9px;background:var(--panel)!important;color:var(--text)!important;font-family:inherit;font-size:14.5px;line-height:1.6;}
 #exp-shell-root .exp-custom textarea{min-height:74px;resize:vertical;}
-#exp-shell-root .exp-custom input:focus,#exp-shell-root .exp-custom textarea:focus{outline:none;border-color:var(--gold);}
+#exp-shell-root .exp-custom input:focus,#exp-shell-root .exp-custom textarea:focus{outline:none;border-color:var(--gold)!important;}
 #exp-shell-root .exp-custom-foot{display:flex;align-items:center;gap:14px;justify-content:center;}
 #exp-shell-root #exp-custom-hint{font-size:13px;color:var(--sem-warn,#d08a45);min-height:1em;text-align:center;margin-top:-14px;}
 #exp-shell-root #exp-custom-go{padding:14px 64px;border:none;border-radius:11px;background:var(--accent,var(--gold));color:var(--on-accent,var(--on-gold));font-family:inherit;font-size:16px;letter-spacing:5px;text-indent:5px;cursor:pointer;box-shadow:0 3px 12px rgba(var(--accent-rgb,var(--gold-rgb)),.28);transition:transform .15s;}
