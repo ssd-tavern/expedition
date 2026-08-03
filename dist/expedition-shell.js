@@ -774,8 +774,8 @@ ${THEME_CSS}
 /* 楼尾静默行 */
 #exp-shell-root .exp-ff-wrap{margin-top:14px;}
 #exp-shell-root .exp-story-turn.selable .exp-ff-wrap{pointer-events:none;}
-#exp-shell-root .exp-ff{display:flex;align-items:center;gap:15px;font-size:12.5px;letter-spacing:1px;color:var(--text-faint);overflow-x:auto;scrollbar-width:none;}
-#exp-shell-root .exp-ff::-webkit-scrollbar{display:none;}
+#exp-shell-root .exp-ff{display:flex;flex-wrap:wrap;align-items:center;gap:9px 15px;font-size:12.5px;letter-spacing:1px;color:var(--text-faint);}
+#exp-shell-root .exp-ff-voices{display:inline-flex;flex-wrap:wrap;align-items:center;gap:9px 12px;}
 #exp-shell-root .exp-ff-item{flex:none;display:inline-flex;align-items:center;gap:4px;border:none;background:none;padding:0;margin:0;font-family:inherit;font-size:inherit;letter-spacing:inherit;color:var(--text-faint);cursor:pointer;transition:color .15s;}
 #exp-shell-root .exp-ff-item:hover,#exp-shell-root .exp-ff-item.open{color:var(--text-dim);}
 #exp-shell-root .exp-ff-item .up,#exp-shell-root .exp-ff-item .down{display:inline-flex;align-items:center;gap:2px;font-size:11px;opacity:.8;transition:opacity .15s;}
@@ -937,7 +937,7 @@ ${THEME_CSS}
 #exp-shell-root .exp-story-turn.user .exp-story-text{font-size:14px;line-height:1.8;}
 #exp-shell-root .exp-story-options{margin-bottom:18px;}
 #exp-shell-root .exp-story-opt{font-size:13.5px;padding:8px 8px;gap:10px;}
-#exp-shell-root .exp-ff{gap:12px;font-size:12px;}
+#exp-shell-root .exp-ff{gap:8px 12px;font-size:12px;}
 #exp-shell-root .exp-ff-voice{font-size:12px;gap:5px;}
 #exp-shell-root .exp-ff-voice img{width:22px;height:22px;}
 #exp-shell-root .exp-vc{gap:12px;padding:12px;}
@@ -2991,12 +2991,12 @@ ${THEME_CSS}
       + items.map(it => '<button class="exp-ff-item' + (openKey === it.key ? ' open' : '') + '" data-foot-item="' + it.key + '">'
         + it.label + ffArrow(it.dv) + '</button>').join('')
       + '<span class="exp-ff-gap"></span>'
-      + (voices.length ? '<span class="exp-ff-label">心声</span>' + voices.map(n => {
+      + (voices.length ? '<span class="exp-ff-voices"><span class="exp-ff-label">心声</span>' + voices.map(n => {
           const img = frontImg(n);
           return '<button class="exp-ff-voice' + (openName === n ? ' open' : '') + '" data-foot-item="voice:' + n + '">'
             + (img ? '<img src="' + escapeHtml(img) + '" alt="" onerror="this.style.opacity=.2">' : '')
             + '<span>' + n + '</span><span class="exp-ff-caret">' + ICO.chev + '</span></button>';
-        }).join('') : '')
+        }).join('') + '</span>' : '')
       + '</div>';
     let panel = '';
     if (openKey) {
