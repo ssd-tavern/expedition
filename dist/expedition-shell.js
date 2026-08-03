@@ -2704,7 +2704,8 @@ ${THEME_CSS}
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(PRESET_UNWRAP_RE, '')
       .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/^\s*###\s*正文\s*$/gm, '');
+      .replace(/^\s*###\s*正文\s*$/gm, '')
+      .replace(/image###[\s\S]*?###/g, '');
   }
 
   const MAIN_TAG_NAMES = ['maintext', 'content', '正文'];
