@@ -80,7 +80,7 @@
     try {
       bootAnimating = motionOK();
       lastStat = null; prevStat = null;
-      storyHtmlCache.clear();
+      storyCacheDrop();
       editState = null;
       if (delMode) setDelMode(false);
       applyVisibility(true);
@@ -433,6 +433,7 @@ ${THEME_CSS}
 #exp-shell-root .exp-topbar{display:flex;align-items:center;gap:24px;height:calc(64px + env(safe-area-inset-top,0px));box-sizing:border-box;padding:env(safe-area-inset-top,0px) 28px 0;flex:none;border-bottom:1px solid rgba(var(--gold-rgb),.14);}
 #exp-shell-root .exp-tb-info{display:contents;}
 #exp-shell-root .exp-tb-item{display:flex;align-items:center;gap:8px;font-size:13.5px;letter-spacing:1.5px;color:var(--text-dim);}
+#exp-shell-root .exp-season{margin-left:9px;font-size:12px;letter-spacing:2px;color:var(--gold-soft);}
 #exp-shell-root .exp-tb-item svg{width:16px;height:16px;color:var(--gold);flex:none;}
 #exp-shell-root .exp-panels{flex:1;position:relative;overflow:hidden;}
 #exp-shell-root .exp-panel{position:absolute;inset:0;overflow-y:auto;padding:28px 32px;display:none;}
@@ -717,10 +718,15 @@ ${THEME_CSS}
 #exp-shell-root .exp-iconbtn.send{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 78%,black));color:var(--on-accent);border:none;}
 #exp-shell-root .exp-iconbtn.send:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 88%,white),var(--accent));color:var(--on-accent);}
 #exp-shell-root .exp-iconbtn:disabled{opacity:.4;cursor:default;}
-#exp-shell-root .exp-story-options{max-width:var(--read-col);margin:0 auto 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-#exp-shell-root .exp-story-opt{display:flex;align-items:baseline;gap:10px;padding:11px 14px;border:1px solid rgba(var(--gold-rgb),.24);border-radius:10px;background:var(--panel);color:var(--text);cursor:pointer;font-family:inherit;text-align:left;font-size:14px;line-height:1.7;box-shadow:var(--panel-sh,none);transition:border-color .15s,background .15s,transform .15s;}
-#exp-shell-root .exp-story-opt:hover{border-color:var(--border-hover);background:var(--panel-hover);transform:translateY(-2px);}
-#exp-shell-root .exp-story-opt-num{flex:none;color:var(--gold-soft);font-size:12px;letter-spacing:1px;}
+#exp-shell-root .exp-story-options{max-width:min(640px,var(--read-col));margin:0 auto 24px;}
+#exp-shell-root .exp-story-opthead{display:flex;align-items:center;gap:14px;margin-bottom:10px;font-size:11px;letter-spacing:3px;color:var(--text-faint);}
+#exp-shell-root .exp-story-opthead::before,#exp-shell-root .exp-story-opthead::after{content:'';flex:1;height:1px;}
+#exp-shell-root .exp-story-opthead::before{background:linear-gradient(90deg,transparent,rgba(var(--gold-rgb),.25));}
+#exp-shell-root .exp-story-opthead::after{background:linear-gradient(90deg,rgba(var(--gold-rgb),.25),transparent);}
+#exp-shell-root .exp-story-opt{display:flex;align-items:baseline;gap:12px;width:100%;padding:7px 10px;margin:0;border:none;background:none;color:var(--text-dim);cursor:pointer;font-family:inherit;text-align:left;font-size:14.5px;line-height:1.8;letter-spacing:.3px;border-radius:8px;transition:color .15s,background .15s,transform .15s;}
+#exp-shell-root .exp-story-opt:hover{color:var(--text-strong);background:rgba(var(--fg-rgb),.035);transform:translateX(3px);}
+#exp-shell-root .exp-story-opt-num{flex:none;color:var(--gold-soft);font-size:12px;letter-spacing:0;opacity:.8;}
+#exp-shell-root .exp-story-opt:hover .exp-story-opt-num{opacity:1;color:var(--gold-hi);}
 #exp-shell-root .exp-story-opt-text{flex:1;min-width:0;}
 #exp-shell-root .exp-story-delbar{display:flex;align-items:center;gap:12px;max-width:calc(var(--read-col) + 116px);margin:0 auto;min-height:52px;}
 #exp-shell-root .exp-story-delbar>span{flex:1;font-size:13px;color:var(--text-faint);letter-spacing:1px;}
@@ -764,6 +770,56 @@ ${THEME_CSS}
 @keyframes exp-think-out-r{0%{left:-70px;}100%{left:100%;}}
 @keyframes exp-think-spin{to{transform:rotate(360deg);}}
 @media (prefers-reduced-motion:reduce){#exp-shell-root .exp-story-thinking-rule::after{display:none;}#exp-shell-root .exp-story-thinking-ico{animation:none;}}
+
+/* 楼尾静默行 */
+#exp-shell-root .exp-ff-wrap{margin-top:14px;}
+#exp-shell-root .exp-story-turn.selable .exp-ff-wrap{pointer-events:none;}
+#exp-shell-root .exp-ff{display:flex;align-items:center;gap:15px;font-size:12.5px;letter-spacing:1px;color:var(--text-faint);overflow-x:auto;scrollbar-width:none;}
+#exp-shell-root .exp-ff::-webkit-scrollbar{display:none;}
+#exp-shell-root .exp-ff-item{flex:none;display:inline-flex;align-items:center;gap:4px;border:none;background:none;padding:0;margin:0;font-family:inherit;font-size:inherit;letter-spacing:inherit;color:var(--text-faint);cursor:pointer;transition:color .15s;}
+#exp-shell-root .exp-ff-item:hover,#exp-shell-root .exp-ff-item.open{color:var(--text-dim);}
+#exp-shell-root .exp-ff-item .up,#exp-shell-root .exp-ff-item .down{display:inline-flex;align-items:center;gap:2px;font-size:11px;opacity:.8;transition:opacity .15s;}
+#exp-shell-root .exp-ff-item .up{color:var(--sem-good);}
+#exp-shell-root .exp-ff-item .down{color:var(--sem-bad);}
+#exp-shell-root .exp-ff-item svg{width:9px;height:9px;}
+#exp-shell-root .exp-ff-item:hover .up,#exp-shell-root .exp-ff-item:hover .down,#exp-shell-root .exp-ff-item.open .up,#exp-shell-root .exp-ff-item.open .down{opacity:1;}
+#exp-shell-root .exp-ff-gap{flex:1;min-width:12px;}
+#exp-shell-root .exp-ff-label{flex:none;color:rgba(var(--accent-rgb,var(--gold-rgb)),.75);}
+#exp-shell-root .exp-ff-voice{flex:none;display:inline-flex;align-items:center;gap:6px;border:none;background:none;padding:0;margin:0;font-family:inherit;font-size:12.5px;letter-spacing:1px;color:var(--accent,var(--gold-soft));cursor:pointer;opacity:.85;transition:opacity .15s;}
+#exp-shell-root .exp-ff-voice img{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:50% 12%;border:1px solid rgba(var(--accent-rgb,var(--gold-rgb)),.45);transition:border-color .15s;display:block;}
+#exp-shell-root .exp-ff-voice:hover,#exp-shell-root .exp-ff-voice.open{opacity:1;}
+#exp-shell-root .exp-ff-voice:hover img,#exp-shell-root .exp-ff-voice.open img{border-color:var(--accent,var(--gold-hi));}
+#exp-shell-root .exp-ff-caret{display:inline-flex;width:11px;height:11px;flex:none;opacity:.65;transform:rotate(90deg);transition:transform .2s;}
+#exp-shell-root .exp-ff-voice.open .exp-ff-caret{transform:rotate(270deg);}
+#exp-shell-root .exp-ff-caret svg{width:100%;height:100%;display:block;}
+#exp-shell-root .exp-ff-detail{margin-top:8px;animation:exp-ff-in .18s ease;}
+#exp-shell-root .exp-ff-line{font-size:12.5px;letter-spacing:1px;color:var(--text-faint);border-left:2px solid rgba(var(--gold-rgb),.3);padding-left:10px;line-height:1.8;}
+#exp-shell-root .exp-ff-line .new{color:var(--text-dim);}
+#exp-shell-root .exp-ff-line .stage{color:var(--gold-soft);}
+@keyframes exp-ff-in{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+/* 心声卡 */
+#exp-shell-root .exp-vc-wrap{margin-top:12px;animation:exp-ff-in .2s ease;}
+#exp-shell-root .exp-vc{display:flex;gap:16px;padding:16px;border:1px solid rgba(var(--gold-rgb),.22);border-radius:13px;background:var(--panel);box-shadow:var(--panel-sh,none);}
+#exp-shell-root .exp-vc-img{flex:none;width:168px;aspect-ratio:832/1216;border-radius:9px;overflow:hidden;border:1px solid rgba(var(--gold-rgb),.3);padding:0;background:none;cursor:pointer;transition:border-color .15s,transform .15s;}
+#exp-shell-root .exp-vc-img:hover{border-color:var(--accent,var(--gold-hi));transform:translateY(-2px);}
+#exp-shell-root .exp-vc-img img{width:100%;height:100%;object-fit:cover;display:block;}
+#exp-shell-root .exp-vc-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px;}
+#exp-shell-root .exp-vc-head{display:flex;align-items:baseline;gap:10px;font-size:13.5px;font-weight:600;letter-spacing:3px;color:var(--gold-soft);padding-bottom:8px;border-bottom:1px solid rgba(var(--gold-rgb),.18);}
+#exp-shell-root .exp-vc-tabs{display:inline-flex;align-items:baseline;gap:7px;font-weight:400;letter-spacing:2px;}
+#exp-shell-root .exp-vc-tab{border:none;background:none;padding:0;margin:0;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:2px;color:var(--text-faint);transition:color .15s;}
+#exp-shell-root .exp-vc-tab:hover{color:var(--text-dim);}
+#exp-shell-root .exp-vc-tab.on{color:var(--accent,var(--gold-hi));font-weight:600;}
+#exp-shell-root .exp-vc-sep{font-size:11px;color:rgba(var(--gold-rgb),.35);}
+#exp-shell-root .exp-vc-text{font-size:14.5px;line-height:2.05;color:var(--text);letter-spacing:.3px;}
+#exp-shell-root .exp-vc-memos{max-height:206px;overflow-y:auto;display:flex;flex-direction:column;gap:13px;padding-right:4px;scrollbar-width:thin;scrollbar-color:rgba(var(--gold-rgb),.3) transparent;}
+#exp-shell-root .exp-vc-memos::-webkit-scrollbar{width:4px;}
+#exp-shell-root .exp-vc-memos::-webkit-scrollbar-thumb{background:rgba(var(--gold-rgb),.3);border-radius:2px;}
+#exp-shell-root .exp-vc-memo{font-size:13.5px;line-height:1.95;color:var(--text);letter-spacing:.3px;}
+#exp-shell-root .exp-vc-memo b{font-weight:600;letter-spacing:1px;color:var(--gold-soft);}
+#exp-shell-root .exp-vc-empty{font-size:13.5px;line-height:1.9;color:var(--text-faint);letter-spacing:.5px;border-left:2px solid rgba(var(--gold-rgb),.25);padding-left:12px;}
+@media (prefers-reduced-motion:reduce){#exp-shell-root .exp-ff-detail,#exp-shell-root .exp-vc-wrap{animation:none;}}
+#exp-shell-root[data-motion="off"] .exp-ff-detail,#exp-shell-root[data-motion="off"] .exp-vc-wrap{animation:none;}
 
 /* 变量页 */
 #exp-shell-root .exp-var{font-size:13px;line-height:1.6;}
@@ -879,8 +935,16 @@ ${THEME_CSS}
 #exp-shell-root .exp-story-turn{margin-bottom:18px;}
 #exp-shell-root .exp-story-turn.assistant .exp-story-text{font-size:15.5px;line-height:1.95;}
 #exp-shell-root .exp-story-turn.user .exp-story-text{font-size:14px;line-height:1.8;}
-#exp-shell-root .exp-story-options{grid-template-columns:1fr;gap:8px;margin-bottom:18px;}
-#exp-shell-root .exp-story-opt{font-size:13.5px;padding:10px 12px;}
+#exp-shell-root .exp-story-options{margin-bottom:18px;}
+#exp-shell-root .exp-story-opt{font-size:13.5px;padding:8px 8px;gap:10px;}
+#exp-shell-root .exp-ff{gap:12px;font-size:12px;}
+#exp-shell-root .exp-ff-voice{font-size:12px;gap:5px;}
+#exp-shell-root .exp-ff-voice img{width:22px;height:22px;}
+#exp-shell-root .exp-vc{gap:12px;padding:12px;}
+#exp-shell-root .exp-vc-img{width:118px;}
+#exp-shell-root .exp-vc-text{font-size:13.5px;line-height:1.95;}
+#exp-shell-root .exp-vc-memo,#exp-shell-root .exp-vc-empty{font-size:12.5px;line-height:1.85;}
+#exp-shell-root .exp-vc-memos{max-height:148px;}
 #exp-shell-root .exp-story-input{padding:8px 10px 10px;}
 #exp-shell-root .exp-story-inputrow{gap:8px;justify-content:flex-start;}
 #exp-shell-root #exp-story-del,#exp-shell-root #exp-story-diff,#exp-shell-root #exp-story-regen,#exp-shell-root #exp-story-send{position:static;top:auto;}
@@ -1328,6 +1392,25 @@ ${THEME_CSS}
     const lid = safeLastMessageId();
     if (lid != null && lid >= 1) return DEFAULT;
     return BLANK;
+  }
+
+  // ════ 展示格式化(fmtPlace/fmtTime/fmtMemoir) ════
+  const SEASONS = ['极昼', '白夜', '极夜'];
+  function segsOf(s) { return String(s == null ? '' : s).split(/[·・]/).map(x => x.trim()).filter(Boolean); }
+  function fmtPlace(s) { return segsOf(s).join('／'); }
+  function fmtTimeHtml(s) {
+    const p = segsOf(s);
+    if (!p.length) return '';
+    const tail = p[p.length - 1];
+    if (p.length > 1 && SEASONS.includes(tail)) {
+      return escapeHtml(p.slice(0, -1).join(' ')) + '<span class="exp-season">' + escapeHtml(tail) + '</span>';
+    }
+    return escapeHtml(p.join(' '));
+  }
+  function fmtMemoir(entry) {
+    const p = segsOf(entry);
+    if (p.length >= 3) return { head: p[0] + '（' + p[1] + '）', body: p.slice(2).join('　') };
+    return { head: '', body: String(entry == null ? '' : entry).trim() };
   }
 
   // ════ 外壳骨架与切页(ensureShell/switchTab) ════
@@ -1881,11 +1964,8 @@ ${THEME_CSS}
 
   // ════ 角色与画廊(角色页/画廊/灯箱) ════
   function memoHtml(entry) {
-    const parts = String(entry).split(/\s*[·・]\s*/);
-    if (parts.length >= 3) {
-      return `<div class="memo-item"><div class="memo-head">${escapeHtml(parts[0])} · ${escapeHtml(parts[1])}</div><div class="memo-text">${escapeHtml(parts.slice(2).join(' · '))}</div></div>`;
-    }
-    return `<div class="memo-item"><div class="memo-text">${escapeHtml(String(entry))}</div></div>`;
+    const m = fmtMemoir(entry);
+    return `<div class="memo-item">${m.head ? `<div class="memo-head">${escapeHtml(m.head)}</div>` : ''}<div class="memo-text">${escapeHtml(m.body)}</div></div>`;
   }
 
   function keepActiveTabVisible(panel) {
@@ -2754,7 +2834,7 @@ ${THEME_CSS}
   }
 
   function optionsHtml(opts) {
-    return '<div class="exp-story-options">' + opts.map((t, i) =>
+    return '<div class="exp-story-options"><div class="exp-story-opthead">行动</div>' + opts.map((t, i) =>
       '<button class="exp-story-opt" data-idx="' + i + '"><span class="exp-story-opt-num">' + (i + 1) + '</span><span class="exp-story-opt-text">' + escapeHtml(t) + '</span></button>'
     ).join('') + '</div>';
   }
@@ -2848,12 +2928,107 @@ ${THEME_CSS}
       + '</div>';
   }
 
-  function storyTurnHtml(role, text, mid, thought, open) {
+  // ════ 楼尾静默行与心声卡 ════
+  function ffArrow(dv) {
+    return '<span class="' + (dv > 0 ? 'up' : 'down') + '">' + (dv > 0 ? ICO.up : ICO.down) + Math.abs(dv) + '</span>';
+  }
+  function ffLine(label, ch, stage) {
+    return label + '　' + ch.from + (ch.to > ch.from ? ' 升至 ' : ' 降至 ')
+      + '<span class="new">' + ch.to + '</span>　<span class="stage">' + stage + '</span>';
+  }
+  function footItems(d) {
+    const items = [];
+    if (!d || !d.delta) return items;
+    VAR_DISPLAY.forEach(v => {
+      if (v.kind === 'aff') {
+        CAST.forEach(n => {
+          const ch = d.delta[v.path + '.' + n];
+          if (!ch || ch.text) return;
+          items.push({ key: 'stat:' + v.path + '.' + n, label: n, dv: ch.to - ch.from, line: ffLine(n + '的好感', ch, AFF[tierIdx(ch.to)]) });
+        });
+      } else {
+        const ch = d.delta[v.path];
+        if (!ch || ch.text) return;
+        items.push({ key: 'stat:' + v.path, label: v.path, dv: ch.to - ch.from, line: ffLine(v.path, ch, band(ch.to, v.path)) });
+      }
+    });
+    return items;
+  }
+  function footVoices(d) {
+    return (d && d.delta) ? CAST.filter(n => d.delta['心声.' + n]) : [];
+  }
+  function voiceCardHtml(mid, name, tab) {
+    const d = floorData(mid) || {};
+    const img = frontImg(name);
+    const voice = String((d.心声 || {})[name] || '').trim();
+    const list = Array.isArray((d.回想 || {})[name]) ? d.回想[name].filter(x => String(x || '').trim()) : [];
+    const body = tab === 'memoir'
+      ? (list.length
+        ? '<div class="exp-vc-memos">' + list.slice().reverse().map(x => {
+            const m = fmtMemoir(x);
+            return '<div class="exp-vc-memo">' + (m.head ? '<b>' + escapeHtml(m.head) + '</b>　' : '') + escapeHtml(m.body) + '</div>';
+          }).join('') + '</div>'
+        : '<div class="exp-vc-empty">还没有留下回想</div>')
+      : (voice ? '<div class="exp-vc-text">' + escapeHtml(voice) + '</div>' : '<div class="exp-vc-empty">她的心声还没有传到这里</div>');
+    const tabBtn = (k, label) => '<button class="exp-vc-tab' + (tab === k ? ' on' : '') + '" data-foot-tab="voice:' + name + ':' + k + '">' + label + '</button>';
+    return '<div class="exp-vc-wrap"><div class="exp-vc">'
+      + '<button class="exp-vc-img" data-foot-char="' + name + '" title="翻到' + name + '">'
+      + (img ? '<img src="' + escapeHtml(img) + '" alt="' + name + '" onerror="this.style.opacity=.25">' : noArt('立绘待补')) + '</button>'
+      + '<div class="exp-vc-main">'
+      + '<div class="exp-vc-head">' + name + '<span class="exp-vc-tabs">' + tabBtn('voice', '心声') + '<span class="exp-vc-sep">｜</span>' + tabBtn('memoir', '回想') + '</span></div>'
+      + body
+      + '</div></div></div>';
+  }
+  function floorFootInner(mid) {
+    const d = floorData(mid);
+    if (!d) return '';
+    const items = footItems(d), voices = footVoices(d);
+    if (!items.length && !voices.length) return '';
+    const open = String(footOpen.get(mid) || '').split(':');
+    const openKey = open[0] === 'stat' ? open.join(':') : '';
+    const openName = open[0] === 'voice' ? open[1] : '';
+    const row = '<div class="exp-ff">'
+      + items.map(it => '<button class="exp-ff-item' + (openKey === it.key ? ' open' : '') + '" data-foot-item="' + it.key + '">'
+        + it.label + ffArrow(it.dv) + '</button>').join('')
+      + '<span class="exp-ff-gap"></span>'
+      + (voices.length ? '<span class="exp-ff-label">心声</span>' + voices.map(n => {
+          const img = frontImg(n);
+          return '<button class="exp-ff-voice' + (openName === n ? ' open' : '') + '" data-foot-item="voice:' + n + '">'
+            + (img ? '<img src="' + escapeHtml(img) + '" alt="" onerror="this.style.opacity=.2">' : '')
+            + '<span>' + n + '</span><span class="exp-ff-caret">' + ICO.chev + '</span></button>';
+        }).join('') : '')
+      + '</div>';
+    let panel = '';
+    if (openKey) {
+      const it = items.find(x => x.key === openKey);
+      if (it) panel = '<div class="exp-ff-detail"><div class="exp-ff-line">' + it.line + '</div></div>';
+    } else if (openName && CAST.includes(openName)) {
+      panel = voiceCardHtml(mid, openName, open[2] === 'memoir' ? 'memoir' : 'voice');
+    }
+    return row + panel;
+  }
+  function floorFootHtml(mid) {
+    const inner = floorFootInner(mid);
+    return inner ? '<div class="exp-ff-wrap" data-foot-mid="' + mid + '">' + inner + '</div>' : '';
+  }
+  function openChar(name) {
+    if (!CAST.includes(name)) return;
+    charSel = name;
+    const root = doc.getElementById(SHELL_ID);
+    const cur = root && root.querySelector('.exp-panel.active');
+    if (cur && cur.dataset.panel === 'char') {
+      refreshChar();
+      animateSubSwitch(getPanel('char'), '.exp-char-stage, .exp-char-side .exp-char-cell');
+    } else switchTab('char');
+  }
+
+  function storyTurnHtml(role, text, mid, thought, open, foot) {
     const cls = role === 'user' ? 'user' : 'assistant';
     const midAttr = (mid == null) ? '' : ' data-mid="' + mid + '"';
     const titleAttr = (cls === 'user' && mid != null) ? ' title="双击编辑这条发言"' : '';
     const foldHtml = thought ? thoughtFoldHtml(thought, mid, open) : '';
-    return '<div class="exp-story-turn ' + cls + '"' + midAttr + titleAttr + '>' + foldHtml + '<div class="exp-story-text">' + storyTextHtml(text) + '</div></div>';
+    return '<div class="exp-story-turn ' + cls + '"' + midAttr + titleAttr + '>' + foldHtml
+      + '<div class="exp-story-text">' + storyTextHtml(text) + '</div>' + (foot || '') + '</div>';
   }
 
   function nearBottom(log) { return log.scrollHeight - log.scrollTop - log.clientHeight < 80; }
@@ -2881,6 +3056,50 @@ ${THEME_CSS}
 
   const storyHtmlCache = new Map();
   const thoughtFoldOpen = new Set();
+
+  // ════ 逐楼变量(floorData/楼尾展示配置) ════
+  const floorCache = new Map();
+  const footOpen = new Map();
+  function storyCacheDrop(id) {
+    if (Number.isInteger(id)) { storyHtmlCache.delete(id); floorCache.delete(id); }
+    else { storyHtmlCache.clear(); floorCache.clear(); footOpen.clear(); }
+  }
+  function msgStat(mid) {
+    try {
+      if (typeof getVariables === 'function' && Number.isInteger(mid) && mid >= 0) {
+        const v = getVariables({ type: 'message', message_id: mid });
+        if (v && v.stat_data) return v.stat_data;
+      }
+    } catch (e) {}
+    return null;
+  }
+  function floorData(mid) {
+    if (floorCache.has(mid)) return floorCache.get(mid);
+    let out = null;
+    try {
+      const cur = msgStat(mid);
+      if (cur) {
+        const curD = readMVU(cur);
+        const prev = mid >= 1 ? msgStat(mid - 1) : null;
+        let delta = prev ? diffStat(readMVU(prev), curD) : null;
+        // 营地期间这三项对外冻结, 楼尾不报它们的变化
+        if (delta && curD.身处 === '营地') ['物资', '健康', '士气'].forEach(k => { delete delta[k]; });
+        if (delta && !Object.keys(delta).length) delta = null;
+        out = { delta, 好感: curD.好感, 心声: curD.心声, 回想: curD.回想 };
+      }
+    } catch (e) {
+      console.warn('[航海日志] 逐楼变量读取失败', e);
+    }
+    floorCache.set(mid, out);
+    return out;
+  }
+  const VAR_DISPLAY = [
+    { path: '好感', kind: 'aff' },
+    { path: '物资', kind: 'meter' },
+    { path: '健康', kind: 'meter' },
+    { path: '士气', kind: 'meter' },
+    { path: '狩猎技巧', kind: 'meter' },
+  ];
 
   function fetchStoryMessages() {
     const lastId = getLastMessageId();
@@ -2916,7 +3135,8 @@ ${THEME_CSS}
   function turnHtml(data) {
     if (!data.text) return '';
     const open = thoughtFoldOpen.has(data.mid);
-    return storyTurnHtml(data.role, data.text, data.mid, data.thought, open);
+    const foot = (data.role !== 'user' && Number.isInteger(data.mid)) ? floorFootHtml(data.mid) : '';
+    return storyTurnHtml(data.role, data.text, data.mid, data.thought, open, foot);
   }
 
   function renderDelModeLog(log) {
@@ -2934,7 +3154,39 @@ ${THEME_CSS}
     });
   }
 
+  function refreshFoot(el) {
+    const wrap = el.closest('.exp-ff-wrap');
+    if (!wrap) return;
+    const mid = +wrap.dataset.footMid;
+    wrap.innerHTML = floorFootInner(mid);
+  }
   function onStoryLogClick(e) {
+    if (!delMode) {
+      const charBtn = e.target.closest('[data-foot-char]');
+      if (charBtn) { e.stopPropagation(); openChar(charBtn.dataset.footChar); return; }
+      const tabBtn = e.target.closest('[data-foot-tab]');
+      if (tabBtn) {
+        e.stopPropagation();
+        const wrap = tabBtn.closest('.exp-ff-wrap');
+        if (wrap) { footOpen.set(+wrap.dataset.footMid, tabBtn.dataset.footTab); refreshFoot(tabBtn); }
+        return;
+      }
+      const item = e.target.closest('[data-foot-item]');
+      if (item) {
+        e.stopPropagation();
+        const wrap = item.closest('.exp-ff-wrap');
+        if (wrap) {
+          const mid = +wrap.dataset.footMid;
+          const key = item.dataset.footItem;
+          const cur = String(footOpen.get(mid) || '');
+          const same = key.indexOf('voice:') === 0 ? cur.indexOf(key + ':') === 0 : cur === key;
+          if (same) footOpen.delete(mid);
+          else footOpen.set(mid, key.indexOf('voice:') === 0 ? key + ':voice' : key);
+          refreshFoot(item);
+        }
+        return;
+      }
+    }
     const head = e.target.closest('.exp-story-thought-head');
     if (!head) return;
     e.stopPropagation();
@@ -3025,7 +3277,7 @@ ${THEME_CSS}
         await setChatMessages([{ message_id: 0, swipe_id: n }]);
         try { await eventEmit(tavern_events.MESSAGE_SWIPED, 0); } catch (e) { console.warn('[航海日志] 补发swipe事件失败', e); }
       }
-      storyHtmlCache.delete(0);
+      storyCacheDrop(0);
       let sd = null;
       try {
         const m0 = getChatMessages(0, { include_swipes: true })[0];
@@ -3444,12 +3696,12 @@ ${THEME_CSS}
         await triggerSlash(a === b ? '/cut ' + a : '/cut ' + a + '-' + b);
       }
       lastStat = null; prevStat = null;
-      storyHtmlCache.clear();
+      storyCacheDrop();
       setDelMode(false);
       renderAll(true);
     } catch (e) {
       lastStat = null; prevStat = null;
-      storyHtmlCache.clear();
+      storyCacheDrop();
       setDelMode(false);
       renderAll(true);
       setStoryStatus('出错: ' + (e && e.message ? e.message : e));
@@ -3512,7 +3764,7 @@ ${THEME_CSS}
     if (save && text) {
       try {
         await setChatMessages([{ message_id: mid, message: text }], { refresh: 'affected' });
-        storyHtmlCache.delete(mid);
+        storyCacheDrop(mid);
       } catch (e) {
         setStoryStatus('出错: ' + (e && e.message ? e.message : e));
         return;
@@ -3656,7 +3908,7 @@ ${THEME_CSS}
       eventRemoveListener(tavern_events.MESSAGE_RECEIVED, onReceived);
       if (streamRAF != null) { cancelAnimationFrame(streamRAF); streamRAF = null; }
       const rid = receivedId != null ? receivedId : safeLastMessageId();
-      if (rid != null && rid >= 0) storyHtmlCache.delete(rid);
+      if (rid != null && rid >= 0) storyCacheDrop(rid);
       genBaselineId = null;
       currentGenId = null;
       setGenerating(false);
@@ -3761,7 +4013,7 @@ ${THEME_CSS}
         await triggerSlash('/cut ' + lastId);
         if (safeLastMessageId() !== lastId - 1) throw new Error('删除上一条回复未生效');
         lastStat = null; prevStat = null;
-        storyHtmlCache.delete(lastId);
+        storyCacheDrop(lastId);
         renderStoryLog();
         renderAll(true);
       }
@@ -3833,9 +4085,9 @@ ${THEME_CSS}
     maybeRerollHero();
     const D = precomputedD || readMVU();
     const timeEl = doc.getElementById(SEL.topbarTime);
-    if (timeEl) timeEl.textContent = D.时间 || '';
+    if (timeEl) timeEl.innerHTML = fmtTimeHtml(D.时间);
     const locEl = doc.getElementById(SEL.tbLoc);
-    if (locEl) locEl.textContent = D.地点 || '';
+    if (locEl) locEl.textContent = fmtPlace(D.地点);
     if (!sending) {
       const lid = safeLastMessageId();
       const blank = (lid == null || lid <= 0) && !D.时间 && !D.地点;
@@ -3860,7 +4112,7 @@ ${THEME_CSS}
         if (variables_before_update && variables_before_update.stat_data) prevStat = _.cloneDeep(_.omit(variables_before_update.stat_data, ['$internal']));
         lastStat = _.cloneDeep(_.omit(variables.stat_data, ['$internal']));
         const lid = safeLastMessageId();
-        storyHtmlCache.delete(lid);
+        storyCacheDrop(lid);
         const afterD = readMVU(variables.stat_data);
         statDelta = (variables_before_update && variables_before_update.stat_data)
           ? diffStat(readMVU(variables_before_update.stat_data), afterD)
@@ -3900,7 +4152,7 @@ ${THEME_CSS}
   // 数据库等插件改写楼层(如user消息规划改写)后刷新显示
   const onMsgMutated = mid => {
     const id = Number(mid);
-    if (Number.isInteger(id)) storyHtmlCache.delete(id); else storyHtmlCache.clear();
+    storyCacheDrop(id);
     if (isShellVisible() && !sending && !delMode && !editState) renderStoryLog();
   };
   eventOn(tavern_events.MESSAGE_EDITED, onMsgMutated);
@@ -3912,7 +4164,7 @@ ${THEME_CSS}
       if (typeof waitGlobalInitialized === 'function') await waitGlobalInitialized('Mvu');
     } catch (e) {}
     lastStat = null; prevStat = null;
-    storyHtmlCache.clear();
+    storyCacheDrop();
     const prevVisible = isShellVisible();
     ['exp-shell-root', 'exp-entry'].forEach(id => {
       const el = doc.getElementById(id);
