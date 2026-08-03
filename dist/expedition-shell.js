@@ -819,6 +819,12 @@ ${THEME_CSS}
 #exp-shell-root .exp-illust{margin:1em 0;text-align:center;}
 #exp-shell-root .exp-illust img{max-width:100%;max-height:60vh;border-radius:10px;border:1px solid rgba(var(--gold-rgb),.18);cursor:pointer;box-shadow:0 4px 20px rgba(var(--sh-rgb),.25);transition:border-color .15s;}
 #exp-shell-root .exp-illust img:hover{border-color:rgba(var(--gold-rgb),.55);}
+#exp-shell-root .exp-illust-lb{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;}
+#exp-shell-root .exp-illust-lb.exp-lb-in{opacity:1;}
+#exp-shell-root .exp-illust-lb.exp-lb-out{opacity:0;}
+#exp-shell-root .exp-illust-lb .exp-lb-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+#exp-shell-root .exp-illust-lb .exp-lb-stage{position:relative;display:flex;align-items:center;justify-content:center;max-width:92vw;max-height:92vh;}
+#exp-shell-root .exp-illust-lb .exp-lb-stage img{max-width:92vw;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6);}
 
 /* 变量页 */
 #exp-shell-root .exp-var{font-size:13px;line-height:1.6;}
