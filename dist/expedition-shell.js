@@ -433,7 +433,8 @@ ${THEME_CSS}
 #exp-shell-root .exp-topbar{display:flex;align-items:center;gap:24px;height:calc(64px + env(safe-area-inset-top,0px));box-sizing:border-box;padding:env(safe-area-inset-top,0px) 28px 0;flex:none;border-bottom:1px solid rgba(var(--gold-rgb),.14);}
 #exp-shell-root .exp-tb-info{display:contents;}
 #exp-shell-root .exp-tb-item{display:flex;align-items:center;gap:8px;font-size:13.5px;letter-spacing:1.5px;color:var(--text-dim);}
-#exp-shell-root .exp-season{margin-left:9px;font-size:12px;letter-spacing:2px;color:var(--gold-soft);}
+#exp-shell-root .exp-season{color:var(--gold-soft);}
+#exp-shell-root .exp-season::before{content:'／';color:rgba(var(--gold-rgb),.5);}
 #exp-shell-root .exp-tb-item svg{width:16px;height:16px;color:var(--gold);flex:none;}
 #exp-shell-root .exp-panels{flex:1;position:relative;overflow:hidden;}
 #exp-shell-root .exp-panel{position:absolute;inset:0;overflow-y:auto;padding:28px 32px;display:none;}
