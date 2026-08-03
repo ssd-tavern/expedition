@@ -32,8 +32,6 @@
     storyRegen: 'exp-story-regen',
     storyDel: 'exp-story-del',
     storyDelbar: 'exp-story-delbar',
-    storyDiff: 'exp-story-diff',
-    storyDiffpanel: 'exp-story-diffpanel',
     storyJump: 'exp-story-jump',
     delCount: 'exp-del-count',
     delCancel: 'exp-del-cancel',
@@ -704,13 +702,8 @@ ${THEME_CSS}
 #exp-shell-root .exp-para-in{animation:exp-para-in .32s ease-out both;}
 #exp-shell-root .exp-story-status{font-size:12px;color:var(--text-faint);text-align:center;padding:3px 0;min-height:1.2em;letter-spacing:2px;}
 #exp-shell-root .exp-story-input{flex:none;padding:10px 26px 18px;}
-#exp-shell-root .exp-story-inputrow{display:flex;align-items:center;justify-content:center;gap:12px;max-width:1108px;margin:0 auto;position:relative;}
-#exp-shell-root #exp-story-del,#exp-shell-root #exp-story-diff,#exp-shell-root #exp-story-regen,#exp-shell-root #exp-story-send{position:absolute;top:calc(50% - 23px);}
-#exp-shell-root #exp-story-del{left:0;}
-#exp-shell-root #exp-story-diff{left:58px;}
-#exp-shell-root #exp-story-regen{left:116px;}
-#exp-shell-root #exp-story-send{right:116px;}
-#exp-shell-root .exp-story-input textarea{flex:0 1 auto;width:min(760px,calc(100% - 348px));resize:none;border:1px solid rgba(var(--gold-rgb),.22)!important;border-radius:12px;padding:12px 15px;font-family:inherit;font-size:15px;line-height:1.6;min-height:50px;max-height:146px;overflow-y:auto;background:var(--panel)!important;color:var(--text)!important;transition:border-color .15s;}
+#exp-shell-root .exp-story-inputrow{display:flex;align-items:center;gap:16px;max-width:960px;margin:0 auto;}
+#exp-shell-root .exp-story-input textarea{flex:1;min-width:0;max-width:760px;resize:none;border:1px solid rgba(var(--gold-rgb),.22)!important;border-radius:12px;padding:12px 15px;font-family:inherit;font-size:15px;line-height:1.6;min-height:50px;max-height:146px;overflow-y:auto;background:var(--panel)!important;color:var(--text)!important;transition:border-color .15s;}
 #exp-shell-root .exp-story-input textarea:focus{outline:none;border-color:var(--border-hover)!important;}
 #exp-shell-root .exp-story-input textarea::placeholder{color:var(--text-faint)!important;}
 #exp-shell-root .exp-iconbtn{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:1px solid rgba(var(--gold-rgb),.3);color:var(--gold);transition:.15s;}
@@ -948,8 +941,7 @@ ${THEME_CSS}
 #exp-shell-root .exp-vc-memos{max-height:148px;}
 #exp-shell-root .exp-story-input{padding:8px 10px 10px;}
 #exp-shell-root .exp-story-inputrow{gap:8px;justify-content:flex-start;}
-#exp-shell-root #exp-story-del,#exp-shell-root #exp-story-diff,#exp-shell-root #exp-story-regen,#exp-shell-root #exp-story-send{position:static;top:auto;}
-#exp-shell-root .exp-story-input textarea{flex:1;width:auto;}
+#exp-shell-root .exp-story-input textarea{max-width:none;}
 #exp-shell-root .exp-del-btn,#exp-shell-root .exp-edit-btn{padding:8px 16px;font-size:13px;letter-spacing:1px;}
 #exp-shell-root .exp-story-delbar{gap:8px;min-height:46px;}
 #exp-shell-root .exp-iconbtn{width:40px;height:40px;}
@@ -1078,13 +1070,6 @@ ${THEME_CSS}
 #exp-shell-root .exp-story-jump:hover{background:rgba(var(--pop-rgb),1);border-color:rgba(var(--gold-rgb),.7);transform:translateY(-2px);}
 #exp-shell-root .exp-story-jump.show{opacity:1;pointer-events:auto;}
 #exp-shell-root .exp-story-jump svg{width:17px;height:17px;transform:rotate(90deg);}
-#exp-shell-root .exp-diff-panel{position:absolute;bottom:120px;z-index:7;min-width:190px;max-width:330px;max-height:60%;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:12px 18px 14px;border-radius:12px;background:rgba(var(--pop-rgb),.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(var(--sh-rgb),.18);font-size:12.5px;letter-spacing:1px;animation:exp-rise-sm var(--dur-med) var(--ease-out) both;}
-#exp-shell-root .exp-diff-head{font-size:11px;letter-spacing:3px;color:var(--gold);margin-bottom:3px;}
-#exp-shell-root .exp-diff-panel span{flex:none;display:flex;justify-content:space-between;gap:18px;}
-#exp-shell-root .exp-diff-panel b{font-weight:600;color:var(--text-strong);}
-#exp-shell-root .exp-diff-panel .up{color:var(--sem-good);}
-#exp-shell-root .exp-diff-panel .down{color:var(--sem-bad);}
-#exp-shell-root .exp-diff-panel .dim{color:var(--text-faint);}
 #exp-shell-root[data-fontsize="lg"]{--read-col:760px;}
 #exp-shell-root[data-fontsize="lg"] .exp-story-turn.assistant .exp-story-text{font-size:19px;}
 #exp-shell-root[data-fontsize="lg"] .exp-story-turn.user .exp-story-text{font-size:17px;}
@@ -1126,7 +1111,6 @@ ${THEME_CSS}
     clock: "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8.5'/><path d='M12 7.5V12l3.2 2'/></svg>",
     compass: "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M15.6 8.4l-2.3 4.9-4.9 2.3 2.3-4.9z'/></svg>",
     close: "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 6l12 12M18 6L6 18'/></svg>",
-    delta: "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M12 4.5 20 19.5H4z'/></svg>",
     chev: "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9 6l6 6-6 6'/></svg>",
     thought: "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linejoin='round'><path d='M12 2.5l2 7.5 7.5 2-7.5 2-2 7.5-2-7.5L2.5 12l7.5-2z'/><path d='M6.5 6.5l2.6 2.6M17.5 6.5l-2.6 2.6M17.5 17.5l-2.6-2.6M6.5 17.5l2.6-2.6' stroke-width='1.1' opacity='.6'/></svg>",
     gear: "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3.1'/><path d='M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z'/></svg>",
@@ -1572,7 +1556,6 @@ ${THEME_CSS}
       const log = doc.getElementById(SEL.storyLog);
       storyScroll = (log && !nearBottom(log)) ? log.scrollTop : null;
     }
-    closeDiffPanel();
     if (delMode) setDelMode(false);
     root.querySelectorAll('.exp-nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     root.querySelectorAll('.exp-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
@@ -1731,59 +1714,6 @@ ${THEME_CSS}
     raf(step);
   }
 
-  let lastDelta = null;
-
-  function buildDiffRows(d) {
-    const rows = [];
-    const push = (label, ch) => {
-      if (!ch) return;
-      if (ch.text) { rows.push('<span class="dim"><b>' + label + '</b>已更新</span>'); return; }
-      const dv = ch.to - ch.from;
-      rows.push('<span class="' + (dv > 0 ? 'up' : 'down') + '"><b>' + label + '</b>' + (dv > 0 ? '+' : '-') + Math.abs(dv) + '</span>');
-    };
-    ['物资', '健康', '士气', '狩猎技巧'].forEach(k => push(k, d[k]));
-    CAST.forEach(n => { push(n + '的好感', d['好感.' + n]); push(n + '的心声', d['心声.' + n]); });
-    ['地点', '时间'].forEach(k => push(k, d[k]));
-    return rows;
-  }
-
-  function onDiffOutside(e) {
-    const el = doc.getElementById(SEL.storyDiffpanel);
-    const btn = doc.getElementById(SEL.storyDiff);
-    if (!el) return;
-    if (el.contains(e.target) || (btn && btn.contains(e.target))) return;
-    closeDiffPanel();
-  }
-
-  function closeDiffPanel() {
-    const el = doc.getElementById(SEL.storyDiffpanel);
-    if (el) el.remove();
-    doc.removeEventListener('click', onDiffOutside);
-  }
-
-  function toggleDiffPanel() {
-    if (doc.getElementById(SEL.storyDiffpanel)) { closeDiffPanel(); return; }
-    const story = doc.querySelector('#exp-shell-root .exp-story');
-    if (!story) return;
-    const d = lastDelta || ((prevStat && lastStat) ? diffStat(readMVU(prevStat), readMVU(lastStat)) : null);
-    const rows = d ? buildDiffRows(d) : [];
-    const el = doc.createElement('div');
-    el.id = SEL.storyDiffpanel;
-    el.className = 'exp-diff-panel';
-    el.innerHTML = '<div class="exp-diff-head">本回合｜变量记录</div>' + (rows.length ? rows.join('') : '<span class="dim">本回合还没有变量变化</span>');
-    story.appendChild(el);
-    const btn = doc.getElementById(SEL.storyDiff);
-    const input = doc.querySelector('#exp-shell-root .exp-story-input');
-    if (btn && input) {
-      const sr = story.getBoundingClientRect(), br = btn.getBoundingClientRect(), ir = input.getBoundingClientRect();
-      const w = el.offsetWidth;
-      const center = br.left + br.width / 2 - sr.left;
-      el.style.left = Math.max(10, Math.min(center - w / 2, sr.width - w - 10)) + 'px';
-      el.style.bottom = (sr.bottom - ir.top) + 'px';
-    }
-    doc.addEventListener('click', onDiffOutside);
-  }
-
   function playStatFx() {
     const d = statDelta;
     statDelta = null;
@@ -1791,7 +1721,6 @@ ${THEME_CSS}
     if (!motionOK()) return;
     const root = doc.getElementById(SHELL_ID);
     if (!root) return;
-    animateOnce(doc.getElementById(SEL.storyDiff), 'exp-pulse');
     Object.entries(d).forEach(([key, ch]) => {
       root.querySelectorAll('[data-stat="' + key + '"]').forEach(box => {
         const panel = box.closest('.exp-panel');
@@ -2858,7 +2787,6 @@ ${THEME_CSS}
         <div class="exp-story-input">
           <div class="exp-story-inputrow">
             <button class="exp-iconbtn" id="${SEL.storyDel}" title="删除楼层">${ICO.trash}</button>
-            <button class="exp-iconbtn" id="${SEL.storyDiff}" title="本回合变量变化">${ICO.delta}</button>
             <button class="exp-iconbtn" id="${SEL.storyRegen}" title="删除并重新生成上一条回复">${ICO.regen}</button>
             <textarea id="${SEL.storyTextarea}" rows="1" placeholder="书写你的命运..."></textarea>
             <button class="exp-iconbtn send" id="${SEL.storySend}" title="发送">${ICO.send}</button>
@@ -2878,15 +2806,17 @@ ${THEME_CSS}
     doc.getElementById(SEL.storyLog).addEventListener('pointerdown', onStoryTapDown);
     doc.getElementById(SEL.storyLog).addEventListener('pointerup', onStoryTapUp);
     doc.getElementById(SEL.storyJump).addEventListener('click', () => scrollStoryToEnd(!sending));
-    doc.getElementById(SEL.storyDiff).addEventListener('click', toggleDiffPanel);
     doc.getElementById(SEL.storySend).addEventListener('click', onSendButton);
     doc.getElementById(SEL.storyRegen).addEventListener('click', onRegenerate);
     doc.getElementById(SEL.storyDel).addEventListener('click', onDelToggle);
     doc.getElementById(SEL.delCancel).addEventListener('click', () => setDelMode(false));
     doc.getElementById(SEL.delConfirm).addEventListener('click', onDelConfirm);
     const ta = doc.getElementById(SEL.storyTextarea);
+    let composing = false;
+    ta.addEventListener('compositionstart', () => { composing = true; });
+    ta.addEventListener('compositionend', () => { composing = false; });
     ta.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); }
+      if (e.key === 'Enter' && !e.shiftKey && !composing && !e.isComposing) { e.preventDefault(); if (!sending) onSend(); }
     });
     ta.addEventListener('input', autogrowStoryTA);
     autogrowStoryTA();
@@ -3057,13 +2987,25 @@ ${THEME_CSS}
 
   const storyHtmlCache = new Map();
   const thoughtFoldOpen = new Set();
+  const lastRenderedRef = new Map();
+  let currentOptions = null;
 
   // ════ 逐楼变量(floorData/楼尾展示配置) ════
   const floorCache = new Map();
   const footOpen = new Map();
   function storyCacheDrop(id) {
-    if (Number.isInteger(id)) { storyHtmlCache.delete(id); floorCache.delete(id); }
-    else { storyHtmlCache.clear(); floorCache.clear(); footOpen.clear(); }
+    if (Number.isInteger(id)) {
+      storyHtmlCache.delete(id);
+      floorCache.delete(id);
+      floorCache.delete(id + 1);
+      lastRenderedRef.delete(id);
+      lastRenderedRef.delete(id + 1);
+    } else {
+      storyHtmlCache.clear();
+      floorCache.clear();
+      footOpen.clear();
+      lastRenderedRef.clear();
+    }
   }
   function msgStat(mid) {
     try {
@@ -3133,25 +3075,19 @@ ${THEME_CSS}
     return data;
   }
 
-  function turnHtml(data) {
+  function turnHtml(data, skipFoot) {
     if (!data.text) return '';
     const open = thoughtFoldOpen.has(data.mid);
-    const foot = (data.role !== 'user' && Number.isInteger(data.mid)) ? floorFootHtml(data.mid) : '';
+    const foot = (!skipFoot && data.role !== 'user' && Number.isInteger(data.mid)) ? floorFootHtml(data.mid) : '';
     return storyTurnHtml(data.role, data.text, data.mid, data.thought, open, foot);
   }
 
-  function renderDelModeLog(log) {
+  function applyDelModeClasses(log) {
     log.querySelectorAll('.exp-story-turn').forEach(t => {
       const mid = +t.dataset.mid;
       if (!(mid >= 1)) return;
       t.classList.add('selable');
       if (delSel.has(mid)) t.classList.add('delsel');
-      t.addEventListener('click', e => {
-        if (e.target.closest('.exp-story-thought-head')) return;
-        if (delSel.has(mid)) { delSel.delete(mid); t.classList.remove('delsel'); }
-        else { delSel.add(mid); t.classList.add('delsel'); }
-        updateDelBar();
-      });
     });
   }
 
@@ -3162,31 +3098,58 @@ ${THEME_CSS}
     wrap.innerHTML = floorFootInner(mid);
   }
   function onStoryLogClick(e) {
-    if (!delMode) {
-      const charBtn = e.target.closest('[data-foot-char]');
-      if (charBtn) { e.stopPropagation(); openChar(charBtn.dataset.footChar); return; }
-      const tabBtn = e.target.closest('[data-foot-tab]');
-      if (tabBtn) {
+    if (delMode) {
+      const head = e.target.closest('.exp-story-thought-head');
+      if (head) {
         e.stopPropagation();
-        const wrap = tabBtn.closest('.exp-ff-wrap');
-        if (wrap) { footOpen.set(+wrap.dataset.footMid, tabBtn.dataset.footTab); refreshFoot(tabBtn); }
+        const fold = head.closest('.exp-story-thought');
+        const open = !fold.classList.contains('open');
+        fold.classList.toggle('open', open);
+        const midAttr = fold.dataset.foldMid;
+        if (midAttr != null) { const mid = +midAttr; if (open) thoughtFoldOpen.add(mid); else thoughtFoldOpen.delete(mid); }
         return;
       }
-      const item = e.target.closest('[data-foot-item]');
-      if (item) {
-        e.stopPropagation();
-        const wrap = item.closest('.exp-ff-wrap');
-        if (wrap) {
-          const mid = +wrap.dataset.footMid;
-          const key = item.dataset.footItem;
-          const cur = String(footOpen.get(mid) || '');
-          const same = key.indexOf('voice:') === 0 ? cur.indexOf(key + ':') === 0 : cur === key;
-          if (same) footOpen.delete(mid);
-          else footOpen.set(mid, key.indexOf('voice:') === 0 ? key + ':voice' : key);
-          refreshFoot(item);
+      const turn = e.target.closest('.exp-story-turn');
+      if (turn) {
+        const mid = +turn.dataset.mid;
+        if (mid >= 1) {
+          if (delSel.has(mid)) { delSel.delete(mid); turn.classList.remove('delsel'); }
+          else { delSel.add(mid); turn.classList.add('delsel'); }
+          updateDelBar();
         }
-        return;
       }
+      return;
+    }
+    const optBtn = e.target.closest('.exp-story-opt');
+    if (optBtn) {
+      e.stopPropagation();
+      const idx = +optBtn.dataset.idx;
+      if (currentOptions && currentOptions[idx] != null) onOptionClick(currentOptions[idx]);
+      return;
+    }
+    const charBtn = e.target.closest('[data-foot-char]');
+    if (charBtn) { e.stopPropagation(); openChar(charBtn.dataset.footChar); return; }
+    const tabBtn = e.target.closest('[data-foot-tab]');
+    if (tabBtn) {
+      e.stopPropagation();
+      const wrap = tabBtn.closest('.exp-ff-wrap');
+      if (wrap) { footOpen.set(+wrap.dataset.footMid, tabBtn.dataset.footTab); refreshFoot(tabBtn); }
+      return;
+    }
+    const item = e.target.closest('[data-foot-item]');
+    if (item) {
+      e.stopPropagation();
+      const wrap = item.closest('.exp-ff-wrap');
+      if (wrap) {
+        const mid = +wrap.dataset.footMid;
+        const key = item.dataset.footItem;
+        const cur = String(footOpen.get(mid) || '');
+        const same = key.indexOf('voice:') === 0 ? cur.indexOf(key + ':') === 0 : cur === key;
+        if (same) footOpen.delete(mid);
+        else footOpen.set(mid, key.indexOf('voice:') === 0 ? key + ':voice' : key);
+        refreshFoot(item);
+      }
+      return;
     }
     const head = e.target.closest('.exp-story-thought-head');
     if (!head) return;
@@ -3201,16 +3164,126 @@ ${THEME_CSS}
     }
   }
 
-  function renderNormalLog(log, messages) {
+  function patchOptionsStrip(log, messages) {
+    const existing = log.querySelector('.exp-story-options');
+    if (existing) existing.remove();
+    currentOptions = null;
     const last = messages[messages.length - 1];
     if (!sending && last && last.role !== 'user') {
       const opts = extractOptions(last.message);
       if (opts.length) {
+        currentOptions = opts;
         log.insertAdjacentHTML('beforeend', optionsHtml(opts));
-        log.querySelectorAll('.exp-story-opt').forEach(b =>
-          b.addEventListener('click', () => onOptionClick(opts[+b.dataset.idx])));
       }
     }
+  }
+
+  function updateTurnContent(el, data) {
+    if (el.classList.contains('editing')) return;
+    const textEl = el.querySelector('.exp-story-text');
+    if (textEl) {
+      const parts = storyParas(data.text, false);
+      const kids = textEl.children;
+      for (let i = 0; i < parts.length; i++) {
+        if (i < kids.length) { if (kids[i].innerHTML !== parts[i]) kids[i].innerHTML = parts[i]; }
+        else { const p = doc.createElement('p'); p.innerHTML = parts[i]; textEl.appendChild(p); }
+      }
+      while (kids.length > parts.length) textEl.removeChild(kids[kids.length - 1]);
+    }
+    const existingThought = el.querySelector('.exp-story-thought');
+    if (data.thought) {
+      const open = thoughtFoldOpen.has(data.mid);
+      if (existingThought) {
+        existingThought.classList.toggle('open', open);
+        const body = existingThought.querySelector('.exp-story-thought-body');
+        const newBody = escapeHtml(data.thought);
+        if (body && body.innerHTML !== newBody) body.innerHTML = newBody;
+      } else {
+        el.insertAdjacentHTML('afterbegin', thoughtFoldHtml(data.thought, data.mid, open));
+      }
+    } else if (existingThought) {
+      existingThought.remove();
+    }
+    if (data.role !== 'user' && Number.isInteger(data.mid)) {
+      const existingFoot = el.querySelector('.exp-ff-wrap');
+      const newFootHtml = floorFootHtml(data.mid);
+      if (newFootHtml) {
+        if (existingFoot) existingFoot.innerHTML = floorFootInner(data.mid);
+        else el.insertAdjacentHTML('beforeend', newFootHtml);
+      } else if (existingFoot) {
+        existingFoot.remove();
+      }
+    }
+  }
+
+  function patchStoryLog(log, messages, coldStart) {
+    const desiredMids = new Set();
+    const desiredData = [];
+    for (const m of messages) {
+      const data = cachedTurnData(m);
+      if (!data.text) continue;
+      desiredMids.add(m.message_id);
+      desiredData.push({ mid: m.message_id, data });
+    }
+    const existingByMid = new Map();
+    const toRemove = [];
+    for (const child of Array.from(log.children)) {
+      const midAttr = child.dataset.mid;
+      if (midAttr != null) {
+        const mid = +midAttr;
+        if (desiredMids.has(mid)) existingByMid.set(mid, child);
+        else toRemove.push(child);
+      } else {
+        toRemove.push(child);
+      }
+    }
+    for (const el of toRemove) el.remove();
+    let cursor = log.firstElementChild;
+    for (const { mid, data } of desiredData) {
+      const existing = existingByMid.get(mid);
+      if (existing) {
+        if (existing !== cursor) log.insertBefore(existing, cursor);
+        else cursor = cursor.nextElementSibling;
+        if (lastRenderedRef.get(mid) !== data) {
+          updateTurnContent(existing, data);
+          lastRenderedRef.set(mid, data);
+        }
+      } else {
+        const html = turnHtml(data, coldStart);
+        if (html) {
+          const tpl = doc.createElement('template');
+          tpl.innerHTML = html;
+          const newEl = tpl.content.firstElementChild;
+          if (motionOK() && !coldStart) newEl.classList.add('exp-in-bubble');
+          log.insertBefore(newEl, cursor);
+          lastRenderedRef.set(mid, data);
+        }
+      }
+    }
+    for (const [mid] of lastRenderedRef) {
+      if (!desiredMids.has(mid)) lastRenderedRef.delete(mid);
+    }
+  }
+
+  let footerBackfillRAF = null;
+  function scheduleFooterBackfill(log) {
+    if (footerBackfillRAF != null) cancelAnimationFrame(footerBackfillRAF);
+    const turns = Array.from(log.querySelectorAll('.exp-story-turn.assistant'));
+    let i = turns.length - 1;
+    function chunk() {
+      footerBackfillRAF = null;
+      const deadline = performance.now() + 8;
+      while (i >= 0 && performance.now() < deadline) {
+        const t = turns[i--];
+        const mid = +t.dataset.mid;
+        if (Number.isInteger(mid) && !t.querySelector('.exp-ff-wrap')) {
+          const footHtml = floorFootHtml(mid);
+          if (footHtml) t.insertAdjacentHTML('beforeend', footHtml);
+        }
+      }
+      if (i >= 0) footerBackfillRAF = requestAnimationFrame(chunk);
+    }
+    footerBackfillRAF = requestAnimationFrame(chunk);
   }
 
   function renderStoryLog() {
@@ -3220,18 +3293,20 @@ ${THEME_CSS}
       const stick = !log.childElementCount || nearBottom(log);
       const prevTop = log.scrollTop;
       let messages = fetchStoryMessages();
-      if (!messages) { log.innerHTML = ''; return; }
+      if (!messages) { log.innerHTML = ''; lastRenderedRef.clear(); return; }
       if (sending && genBaselineId != null) messages = messages.filter(m => m.message_id <= genBaselineId);
       if (messages.length && messages[0].message_id === 0 && floor0SwipeId() === 0) messages = messages.slice(1);
-      log.innerHTML = messages.map(m => turnHtml(cachedTurnData(m))).join('');
+      const coldStart = lastRenderedRef.size === 0 && messages.length > 0;
+      patchStoryLog(log, messages, coldStart);
       if (delMode) {
-        renderDelModeLog(log);
+        applyDelModeClasses(log);
       } else {
-        renderNormalLog(log, messages);
+        patchOptionsStrip(log, messages);
         applyUserEdit(log);
       }
       log.scrollTop = stick ? log.scrollHeight : prevTop;
       updateJumpBtn();
+      if (coldStart) scheduleFooterBackfill(log);
     } catch (e) {
       console.warn('[航海日志] 正文渲染失败', e);
       if (!log.childElementCount) setStoryStatus('航海日志加载失败，请重新进入或反馈给作者');
@@ -3647,13 +3722,16 @@ ${THEME_CSS}
   }
 
   function setDelMode(on) {
+    if (!on) {
+      const log = doc.getElementById(SEL.storyLog);
+      if (log) log.querySelectorAll('.exp-story-turn.selable').forEach(t => t.classList.remove('selable', 'delsel'));
+    }
     delMode = on;
     delSel.clear();
     const row = doc.querySelector('#exp-shell-root .exp-story-inputrow');
     const bar = doc.getElementById(SEL.storyDelbar);
     if (row) row.style.display = on ? 'none' : '';
     if (bar) bar.style.display = on ? '' : 'none';
-    if (on) closeDiffPanel();
     if (on && bar) animateOnce(bar, 'exp-in-soft');
     updateDelBar();
     setStoryStatus('');
@@ -3727,8 +3805,11 @@ ${THEME_CSS}
     const grow = () => { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; };
     grow();
     ta.addEventListener('input', () => { if (editState) editState.draft = ta.value; grow(); });
+    let editComposing = false;
+    ta.addEventListener('compositionstart', () => { editComposing = true; });
+    ta.addEventListener('compositionend', () => { editComposing = false; });
     ta.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); closeUserEdit(true); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !editComposing && !e.isComposing) { e.preventDefault(); closeUserEdit(true); }
     });
     turn.querySelector('.exp-edit-save').addEventListener('click', () => closeUserEdit(true));
     turn.querySelector('.exp-edit-cancel').addEventListener('click', () => closeUserEdit(false));
@@ -4118,7 +4199,6 @@ ${THEME_CSS}
         statDelta = (variables_before_update && variables_before_update.stat_data)
           ? diffStat(readMVU(variables_before_update.stat_data), afterD)
           : null;
-        if (statDelta) { lastDelta = statDelta; closeDiffPanel(); }
         renderAll(false, afterD);
         playStatFx();
         if (isShellVisible() && !sending) renderStoryLog();
@@ -4202,7 +4282,6 @@ ${THEME_CSS}
 
   // ════ 事件绑定与生命周期｜快捷键与卸载清理 ════
   const ESC_CLOSERS = [
-    { isOpen: () => !!doc.getElementById(SEL.storyDiffpanel), close: closeDiffPanel },
     { isOpen: () => !!doc.querySelector('#exp-shell-root .exp-poipop'), close: () => doc.querySelector('#exp-shell-root .exp-poipop').remove() },
     { isOpen: () => !!editState, close: () => closeUserEdit(false) },
     { isOpen: () => delMode, close: () => setDelMode(false) },
@@ -4261,7 +4340,6 @@ ${THEME_CSS}
       window.parent.removeEventListener('resize', onMapResize);
       window.parent.removeEventListener('exp-shell-enter', onShellEnter);
       doc.removeEventListener('keydown', onDocKey);
-      doc.removeEventListener('click', onDiffOutside);
       doc.removeEventListener('pointerdown', onPressDown);
       doc.removeEventListener('pointermove', onPressMove);
       doc.removeEventListener('pointerup', clearPressed);
