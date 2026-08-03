@@ -815,6 +815,11 @@ ${THEME_CSS}
 @media (prefers-reduced-motion:reduce){#exp-shell-root .exp-ff-detail,#exp-shell-root .exp-vc-wrap{animation:none;}}
 #exp-shell-root[data-motion="off"] .exp-ff-detail,#exp-shell-root[data-motion="off"] .exp-vc-wrap{animation:none;}
 
+/* 正文插图 */
+#exp-shell-root .exp-illust{margin:1em 0;text-align:center;}
+#exp-shell-root .exp-illust img{max-width:100%;max-height:60vh;border-radius:10px;border:1px solid rgba(var(--gold-rgb),.18);cursor:pointer;box-shadow:0 4px 20px rgba(var(--sh-rgb),.25);transition:border-color .15s;}
+#exp-shell-root .exp-illust img:hover{border-color:rgba(var(--gold-rgb),.55);}
+
 /* 变量页 */
 #exp-shell-root .exp-var{font-size:13px;line-height:1.6;}
 #exp-shell-root .exp-var h4{margin:0 0 10px;color:var(--gold-soft);letter-spacing:3px;border-bottom:1px solid rgba(var(--gold-rgb),.28);padding-bottom:6px;}
@@ -939,6 +944,7 @@ ${THEME_CSS}
 #exp-shell-root .exp-vc-text{font-size:13.5px;line-height:1.95;}
 #exp-shell-root .exp-vc-memo,#exp-shell-root .exp-vc-empty{font-size:12.5px;line-height:1.85;}
 #exp-shell-root .exp-vc-memos{max-height:148px;}
+#exp-shell-root .exp-illust img{max-height:45vh;}
 #exp-shell-root .exp-story-input{padding:8px 10px 10px;}
 #exp-shell-root .exp-story-inputrow{gap:8px;justify-content:flex-start;}
 #exp-shell-root .exp-story-input textarea{max-width:none;}
@@ -2685,7 +2691,7 @@ ${THEME_CSS}
   const PRESET_STRIP_TAGS = ['details', 'summary', 'tucao', 'danmu', 'konatan_chat', 'progress', 'current_event',
     'htmlcontent', 'guifan', 'done', 'disclaimer', 'w2g', 'VariableCheck', 'memo', 'draft', 'Interleaving',
     'choice', 'safe', 'theater', 'recap', 'background', 'parallel_world', 'meow_FM', 'time_format',
-    'aftertalk', 'Shiosai', 'snow', 'quote', 'htm1fenge', 'math', 'finish', 'WF', 'style', 'script', 'scene'];
+    'aftertalk', 'Shiosai', 'snow', 'quote', 'htm1fenge', 'math', 'finish', 'WF', 'style', 'script', 'scene', 'image'];
   const PRESET_UNWRAP_TAGS = ['content', 'writing_process', 'Chain_of_Thought', 'SexualScene', 'thought', 'os',
     'font', 'span', 'p', 'div', 'b', 'i', 'em', 'strong', 'hr', 'img', 'a', 'small', 'big', 'u', 'center', 'mark', '正文'];
   const PRESET_STRIP_RE = new RegExp('<(' + PRESET_STRIP_TAGS.join('|') + ')(?:\\s[^>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>|$)', 'gi');
@@ -2958,8 +2964,9 @@ ${THEME_CSS}
     const midAttr = (mid == null) ? '' : ' data-mid="' + mid + '"';
     const titleAttr = (cls === 'user' && mid != null) ? ' title="双击编辑这条发言"' : '';
     const foldHtml = thought ? thoughtFoldHtml(thought, mid, open) : '';
+    const illust = (cls === 'assistant' && mid != null) ? illustBlockHtml(mid) : '';
     return '<div class="exp-story-turn ' + cls + '"' + midAttr + titleAttr + '>' + foldHtml
-      + '<div class="exp-story-text">' + storyTextHtml(text) + '</div>' + (foot || '') + '</div>';
+      + '<div class="exp-story-text">' + storyTextHtml(text) + '</div>' + illust + (foot || '') + '</div>';
   }
 
   function nearBottom(log) { return log.scrollHeight - log.scrollTop - log.clientHeight < 80; }
@@ -3000,11 +3007,13 @@ ${THEME_CSS}
       floorCache.delete(id + 1);
       lastRenderedRef.delete(id);
       lastRenderedRef.delete(id + 1);
+      illustCache.delete(id);
     } else {
       storyHtmlCache.clear();
       floorCache.clear();
       footOpen.clear();
       lastRenderedRef.clear();
+      illustCache.clear();
     }
   }
   function msgStat(mid) {
@@ -3120,6 +3129,8 @@ ${THEME_CSS}
       }
       return;
     }
+    const illustImg = e.target.closest('.exp-illust img');
+    if (illustImg) { e.stopPropagation(); openIllustLightbox(illustImg); return; }
     const optBtn = e.target.closest('.exp-story-opt');
     if (optBtn) {
       e.stopPropagation();
@@ -3204,6 +3215,7 @@ ${THEME_CSS}
     } else if (existingThought) {
       existingThought.remove();
     }
+    if (data.role !== 'user' && Number.isInteger(data.mid)) updateIllusts(el, data.mid);
     if (data.role !== 'user' && Number.isInteger(data.mid)) {
       const existingFoot = el.querySelector('.exp-ff-wrap');
       const newFootHtml = floorFootHtml(data.mid);
@@ -4273,6 +4285,7 @@ ${THEME_CSS}
     try {
       renderAll(true);
       renderStoryLog();
+      initIllustObserver();
       if (isShellVisible() && canSelectOpening() && !openingConfirmed) switchTab('opening');
     } catch (e) {
       applyVisibility(false);
@@ -4344,6 +4357,7 @@ ${THEME_CSS}
       doc.removeEventListener('pointermove', onPressMove);
       doc.removeEventListener('pointerup', clearPressed);
       doc.removeEventListener('pointercancel', clearPressed);
+      disconnectIllustObserver();
       eventRemoveListener('mag_variable_update_ended', onVarUpdateEnded);
       eventRemoveListener('mag_variable_initiailized', onVarInitialized);
       eventRemoveListener(tavern_events.CHAT_CHANGED, onChatChanged);
@@ -4364,5 +4378,119 @@ ${THEME_CSS}
     $(errorCatched(init));
   } else {
     (document.readyState === 'loading') ? document.addEventListener('DOMContentLoaded', init) : init();
+  }
+  // ════ st-chatu8 插图集成 ════
+  const illustCache = new Map();
+
+  function chatu8Active() {
+    try {
+      const v = getVariables({ type: 'chat' });
+      return v && v.zhihuiji === 'true';
+    } catch (e) { return false; }
+  }
+
+  function scanNativeImages(mesId) {
+    try {
+      const mesEl = doc.querySelector('#chat .mes[mesid="' + mesId + '"] .mes_text');
+      if (!mesEl) return [];
+      const imgs = mesEl.querySelectorAll('.st-chatu8-image-container img, .st-chatu8-image-span img');
+      return Array.from(imgs).map(img => img.src).filter(Boolean);
+    } catch (e) { return []; }
+  }
+
+  function illustBlockHtml(mid) {
+    if (!Number.isInteger(mid) || !chatu8Active()) return '';
+    let srcs = illustCache.get(mid);
+    if (srcs === undefined) {
+      srcs = scanNativeImages(mid);
+      illustCache.set(mid, srcs);
+    }
+    if (!srcs.length) return '';
+    return srcs.map((src, i) =>
+      '<div class="exp-illust" data-illust-mid="' + mid + '" data-illust-idx="' + i + '">'
+      + '<img src="' + escapeHtml(src) + '" loading="lazy">'
+      + '</div>'
+    ).join('');
+  }
+
+  function updateIllusts(turnEl, mid) {
+    if (!Number.isInteger(mid)) return;
+    const html = illustBlockHtml(mid);
+    const existing = turnEl.querySelectorAll('.exp-illust');
+    if (!html && !existing.length) return;
+    existing.forEach(el => el.remove());
+    if (html) {
+      const foot = turnEl.querySelector('.exp-ff-wrap');
+      if (foot) foot.insertAdjacentHTML('beforebegin', html);
+      else turnEl.insertAdjacentHTML('beforeend', html);
+    }
+  }
+
+  // ==== 灯箱 ====
+  function openIllustLightbox(imgEl) {
+    const src = imgEl.src;
+    if (!src) return;
+    const root = doc.getElementById(SHELL_ID);
+    if (!root) return;
+    let lb = root.querySelector('.exp-illust-lb');
+    if (lb) lb.remove();
+    lb = doc.createElement('div');
+    lb.className = 'exp-illust-lb';
+    lb.innerHTML = '<div class="exp-lb-backdrop"></div>'
+      + '<div class="exp-lb-stage"><img src="' + escapeHtml(src) + '"></div>';
+    lb.addEventListener('click', e => {
+      if (!e.target.closest('.exp-lb-stage img')) {
+        lb.classList.add('exp-lb-out');
+        setTimeout(() => lb.remove(), 180);
+      }
+    });
+    root.appendChild(lb);
+    requestAnimationFrame(() => lb.classList.add('exp-lb-in'));
+  }
+
+  // ==== MutationObserver ====
+  let illustObserver = null;
+
+  function initIllustObserver() {
+    const chat = doc.getElementById('chat');
+    if (!chat || illustObserver) return;
+    let raf = 0;
+    illustObserver = new MutationObserver(muts => {
+      let dirty = false;
+      for (const m of muts) {
+        for (const n of m.addedNodes) {
+          if (n.nodeType === 1 && (
+            (n.classList && n.classList.contains('st-chatu8-image-container'))
+            || (n.querySelector && n.querySelector('.st-chatu8-image-container'))
+          )) { dirty = true; break; }
+        }
+        if (dirty) break;
+      }
+      if (!dirty) return;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const affected = new Set();
+        for (const m of muts) {
+          let el = m.target;
+          while (el && el !== chat) {
+            if (el.classList && el.classList.contains('mes') && el.getAttribute('mesid')) {
+              affected.add(+el.getAttribute('mesid'));
+              break;
+            }
+            el = el.parentElement;
+          }
+        }
+        for (const mid of affected) {
+          illustCache.delete(mid);
+          storyCacheDrop(mid);
+        }
+        if (affected.size > 0 && isShellVisible() && !sending) renderStoryLog();
+      });
+    });
+    illustObserver.observe(chat, { childList: true, subtree: true });
+  }
+
+  function disconnectIllustObserver() {
+    if (illustObserver) { illustObserver.disconnect(); illustObserver = null; }
   }
 })();
