@@ -3104,9 +3104,20 @@ ${THEME_CSS}
     return msgs ? msgs.filter(m => m.is_hidden !== true) : null;
   }
 
+  // 数据库插件会把用户消息整条覆写成注入模板(真实输入嵌在其中), 逐层剥离只留用户打的字
   function userDisplayText(raw) {
-    const m = String(raw).match(/<本轮用户输入>\s*([\s\S]*?)\s*<\/本轮用户输入>/);
-    return m ? m[1] : raw;
+    let s = String(raw);
+    const m = s.match(/<本轮用户输入>\s*([\s\S]*?)\s*<\/本轮用户输入>/);
+    if (m) {
+      s = m[1];
+    } else {
+      const i = s.indexOf('<本轮用户输入>');
+      if (i >= 0) s = s.slice(i + '<本轮用户输入>'.length);
+    }
+    s = s.replace(/\n*\s*(?:以上是用户的本轮输入|以下输入的代码为既定事实记忆|\[时间约束词\])[\s\S]*$/, '');
+    s = s.replace(/^\s*以下是用户的本轮输入[：:]\s*/, '');
+    s = s.replace(/<\/?本轮用户输入>/g, '').trim();
+    return s || String(raw);
   }
 
   // 酒馆助手把swipe_info[swipe_id]当extra返回, 思维链藏在其内层extra里; 无swipe_info时才是消息extra本身
@@ -3874,7 +3885,7 @@ ${THEME_CSS}
     let raw = null;
     try {
       const m = getChatMessages(mid)[0];
-      if (m && m.role === 'user') raw = m.message;
+      if (m && m.role === 'user') raw = userDisplayText(m.message);
     } catch (e) { dbg('readUserMsg', e); }
     if (raw == null) return;
     editState = { mid: mid, draft: raw };
