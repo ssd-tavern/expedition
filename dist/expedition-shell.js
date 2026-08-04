@@ -819,6 +819,8 @@ ${THEME_CSS}
 #exp-shell-root .exp-illust{margin:1em 0;text-align:center;}
 #exp-shell-root .exp-illust img{max-width:100%;max-height:60vh;border-radius:10px;border:1px solid rgba(var(--gold-rgb),.18);cursor:pointer;box-shadow:0 4px 20px rgba(var(--sh-rgb),.25);transition:border-color .15s;}
 #exp-shell-root .exp-illust img:hover{border-color:rgba(var(--gold-rgb),.55);}
+#exp-shell-root .exp-story-text p.exp-ill-slot{margin:1em 0;text-align:center;}
+#exp-shell-root .exp-story-text p.exp-ill-slot:empty{display:none;}
 #exp-shell-root .exp-illust-lb{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;}
 #exp-shell-root .exp-illust-lb.exp-lb-in{opacity:1;}
 #exp-shell-root .exp-illust-lb.exp-lb-out{opacity:0;}
@@ -2714,6 +2716,17 @@ ${THEME_CSS}
       .replace(/image###[\s\S]*?###/g, '');
   }
 
+  // 插图槽位占位符: 正文提取时把st-chatu8标记换成该字符, 渲染时按序对应原生DOM里的图
+  const ILL_TOKEN = '\uE97F';
+  function tokenizeIllustMarkers(s) {
+    return s
+      .replace(/<image(?:\s[^>]*)?>([\s\S]*?)<\/image\s*>/gi, (m, inner) => {
+        const n = (inner.match(/image###[\s\S]*?###/g) || []).length;
+        return n ? '\n' + Array(n).fill(ILL_TOKEN).join('\n') + '\n' : '';
+      })
+      .replace(/image###[\s\S]*?###/g, '\n' + ILL_TOKEN + '\n');
+  }
+
   const MAIN_TAG_NAMES = ['maintext', 'content', '正文'];
   function findMainBlock(s) {
     for (const tag of MAIN_TAG_NAMES) {
@@ -2735,21 +2748,21 @@ ${THEME_CSS}
     const main = findMainBlock(s);
     if (main) {
       const body = main.body;
-      if (main.closed) return applyDisplayRegexes(stripPresetNoise(body.replace(/<UpdateVariable>[\s\S]*?<\/UpdateVariable>/gi, ''))).trim();
-      return applyDisplayRegexes(stripPresetNoise(body
+      if (main.closed) return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(body.replace(/<UpdateVariable>[\s\S]*?<\/UpdateVariable>/gi, '')))).trim();
+      return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(body
         .replace(/<options>[\s\S]*$/i, '')
         .replace(/<branches>[\s\S]*$/i, '')
         .replace(/<UpdateVariable>[\s\S]*$/i, '')
-        .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, ''))
+        .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, '')))
         .replace(/<!--[\s\S]*$/, '')
         .replace(/<\/?[a-z]*$/i, '')).trim();
     }
     if (streaming) return '';
-    return applyDisplayRegexes(stripPresetNoise(s
+    return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(s
       .replace(/<UpdateVariable>[\s\S]*?(?:<\/UpdateVariable>|$)/gi, '')
       .replace(/<options>[\s\S]*?(?:<\/options>|$)/gi, '')
       .replace(/<branches>[\s\S]*?(?:<\/branches>|$)/gi, '')
-      .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, ''))).trim();
+      .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, '')))).trim();
   }
 
   function extractOptions(raw) {
@@ -2844,24 +2857,35 @@ ${THEME_CSS}
   }
 
   function storyTextHtml(text, streaming) {
-    return storyParas(text, streaming).map(s => '<p>' + s + '</p>').join('');
+    return storyParas(text, streaming).map(s =>
+      s === ILL_TOKEN ? '<p class="exp-illust exp-ill-slot"></p>' : '<p>' + s + '</p>'
+    ).join('');
+  }
+
+  function syncStoryParas(body, parts, anim) {
+    const kids = body.children;
+    for (let i = 0; i < parts.length; i++) {
+      const isSlot = parts[i] === ILL_TOKEN;
+      let el = i < kids.length ? kids[i] : null;
+      if (el && isSlot !== el.classList.contains('exp-ill-slot')) {
+        const p = doc.createElement('p');
+        if (isSlot) p.className = 'exp-illust exp-ill-slot';
+        body.replaceChild(p, el);
+        el = p;
+      }
+      if (!el) {
+        el = doc.createElement('p');
+        if (isSlot) el.className = 'exp-illust exp-ill-slot';
+        else if (anim && i > 0) el.className = 'exp-para-in';
+        body.appendChild(el);
+      }
+      if (!isSlot && el.innerHTML !== parts[i]) el.innerHTML = parts[i];
+    }
+    while (kids.length > parts.length) body.removeChild(kids[kids.length - 1]);
   }
 
   function paintStoryText(body, text) {
-    const parts = storyParas(text, true);
-    const kids = body.children;
-    const anim = motionOK();
-    for (let i = 0; i < parts.length; i++) {
-      if (i < kids.length) {
-        if (kids[i].innerHTML !== parts[i]) kids[i].innerHTML = parts[i];
-      } else {
-        const p = doc.createElement('p');
-        p.innerHTML = parts[i];
-        if (anim && i > 0) p.className = 'exp-para-in';
-        body.appendChild(p);
-      }
-    }
-    while (kids.length > parts.length) body.removeChild(kids[kids.length - 1]);
+    syncStoryParas(body, storyParas(text, true), motionOK());
   }
 
   function thoughtFoldHtml(thought, mid, open) {
@@ -2971,9 +2995,14 @@ ${THEME_CSS}
     const midAttr = (mid == null) ? '' : ' data-mid="' + mid + '"';
     const titleAttr = (cls === 'user' && mid != null) ? ' title="双击编辑这条发言"' : '';
     const foldHtml = thought ? thoughtFoldHtml(thought, mid, open) : '';
-    const illust = (cls === 'assistant' && mid != null) ? illustBlockHtml(mid) : '';
+    let textHtml = storyTextHtml(text), tail = '';
+    if (cls === 'assistant' && mid != null) {
+      const filled = fillIllustSlots(textHtml, mid);
+      textHtml = filled.html;
+      tail = filled.tail;
+    }
     return '<div class="exp-story-turn ' + cls + '"' + midAttr + titleAttr + '>' + foldHtml
-      + '<div class="exp-story-text">' + storyTextHtml(text) + '</div>' + illust + (foot || '') + '</div>';
+      + '<div class="exp-story-text">' + textHtml + '</div>' + tail + (foot || '') + '</div>';
   }
 
   function nearBottom(log) { return log.scrollHeight - log.scrollTop - log.clientHeight < 80; }
@@ -3199,15 +3228,7 @@ ${THEME_CSS}
   function updateTurnContent(el, data) {
     if (el.classList.contains('editing')) return;
     const textEl = el.querySelector('.exp-story-text');
-    if (textEl) {
-      const parts = storyParas(data.text, false);
-      const kids = textEl.children;
-      for (let i = 0; i < parts.length; i++) {
-        if (i < kids.length) { if (kids[i].innerHTML !== parts[i]) kids[i].innerHTML = parts[i]; }
-        else { const p = doc.createElement('p'); p.innerHTML = parts[i]; textEl.appendChild(p); }
-      }
-      while (kids.length > parts.length) textEl.removeChild(kids[kids.length - 1]);
-    }
+    if (textEl) syncStoryParas(textEl, storyParas(data.text, false), false);
     const existingThought = el.querySelector('.exp-story-thought');
     if (data.thought) {
       const open = thoughtFoldOpen.has(data.mid);
@@ -4396,40 +4417,73 @@ ${THEME_CSS}
     } catch (e) { return false; }
   }
 
+  // 按DOM序返回每个图容器的src, 生成中的容器占位为null, 保证与正文标记的序号对应
   function scanNativeImages(mesId) {
     try {
       const mesEl = doc.querySelector('#chat .mes[mesid="' + mesId + '"] .mes_text');
       if (!mesEl) return [];
-      const imgs = mesEl.querySelectorAll('.st-chatu8-image-container img, .st-chatu8-image-span img');
-      return Array.from(imgs).map(img => img.src).filter(Boolean);
+      let units = mesEl.querySelectorAll('.st-chatu8-image-container');
+      if (!units.length) units = mesEl.querySelectorAll('.st-chatu8-image-span');
+      return Array.from(units).map(u => {
+        const img = u.querySelector('img');
+        return (img && img.src) ? img.src : null;
+      });
     } catch (e) { return []; }
   }
 
-  function illustBlockHtml(mid) {
-    if (!Number.isInteger(mid) || !chatu8Active()) return '';
+  function illustSrcs(mid) {
+    if (!Number.isInteger(mid) || !chatu8Active()) return [];
     let srcs = illustCache.get(mid);
     if (srcs === undefined) {
       srcs = scanNativeImages(mid);
       illustCache.set(mid, srcs);
     }
-    if (!srcs.length) return '';
-    return srcs.map((src, i) =>
-      '<div class="exp-illust" data-illust-mid="' + mid + '" data-illust-idx="' + i + '">'
-      + '<img src="' + escapeHtml(src) + '" loading="lazy">'
-      + '</div>'
+    return srcs;
+  }
+
+  function illustImgHtml(src) {
+    return '<img src="' + escapeHtml(src) + '" loading="lazy">';
+  }
+
+  // 楼底插图块: 槽位没消化完的图(如世界书楼尾标记产出)仍追加在楼层底部
+  function illustTailHtml(mid, from) {
+    const srcs = illustSrcs(mid);
+    if (from >= srcs.length) return '';
+    return srcs.slice(from).filter(Boolean).map(src =>
+      '<div class="exp-illust" data-illust-mid="' + mid + '">' + illustImgHtml(src) + '</div>'
     ).join('');
+  }
+
+  // 初始建楼: 在字符串层面把正文里的空槽位按序填上图, 返回处理后的正文与楼底块
+  function fillIllustSlots(textHtml, mid) {
+    const srcs = illustSrcs(mid);
+    let k = 0;
+    const html = textHtml.replace(/<p class="exp-illust exp-ill-slot"><\/p>/g, () => {
+      const src = srcs[k++];
+      return '<p class="exp-illust exp-ill-slot">' + (src ? illustImgHtml(src) : '') + '</p>';
+    });
+    return { html: html, tail: illustTailHtml(mid, k) };
   }
 
   function updateIllusts(turnEl, mid) {
     if (!Number.isInteger(mid)) return;
-    const html = illustBlockHtml(mid);
-    const existing = turnEl.querySelectorAll('.exp-illust');
-    if (!html && !existing.length) return;
-    existing.forEach(el => el.remove());
-    if (html) {
+    const srcs = illustSrcs(mid);
+    const slots = turnEl.querySelectorAll('.exp-story-text .exp-ill-slot');
+    slots.forEach((slot, i) => {
+      const src = srcs[i] || '';
+      const img = slot.querySelector('img');
+      if (!src) { if (img) slot.innerHTML = ''; }
+      else if (!img) slot.innerHTML = illustImgHtml(src);
+      else if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+    });
+    const tailHtml = illustTailHtml(mid, slots.length);
+    const existingTail = Array.from(turnEl.querySelectorAll('.exp-illust')).filter(el => !el.classList.contains('exp-ill-slot'));
+    if (!tailHtml && !existingTail.length) return;
+    existingTail.forEach(el => el.remove());
+    if (tailHtml) {
       const foot = turnEl.querySelector('.exp-ff-wrap');
-      if (foot) foot.insertAdjacentHTML('beforebegin', html);
-      else turnEl.insertAdjacentHTML('beforeend', html);
+      if (foot) foot.insertAdjacentHTML('beforebegin', tailHtml);
+      else turnEl.insertAdjacentHTML('beforeend', tailHtml);
     }
   }
 
@@ -4458,6 +4512,13 @@ ${THEME_CSS}
   // ==== MutationObserver ====
   let illustObserver = null;
 
+  function chatu8Node(n) {
+    if (!n || n.nodeType !== 1) return false;
+    return (n.matches && n.matches('.st-chatu8-image-container, .st-chatu8-image-span'))
+      || (n.querySelector && !!n.querySelector('.st-chatu8-image-container, .st-chatu8-image-span'))
+      || (n.closest && !!n.closest('.st-chatu8-image-container, .st-chatu8-image-span'));
+  }
+
   function initIllustObserver() {
     const chat = doc.getElementById('chat');
     if (!chat || illustObserver) return;
@@ -4465,11 +4526,12 @@ ${THEME_CSS}
     illustObserver = new MutationObserver(muts => {
       let dirty = false;
       for (const m of muts) {
+        if (m.type === 'attributes') {
+          if (chatu8Node(m.target)) { dirty = true; break; }
+          continue;
+        }
         for (const n of m.addedNodes) {
-          if (n.nodeType === 1 && (
-            (n.classList && n.classList.contains('st-chatu8-image-container'))
-            || (n.querySelector && n.querySelector('.st-chatu8-image-container'))
-          )) { dirty = true; break; }
+          if (chatu8Node(n)) { dirty = true; break; }
         }
         if (dirty) break;
       }
@@ -4494,7 +4556,7 @@ ${THEME_CSS}
         if (affected.size > 0 && isShellVisible() && !sending) renderStoryLog();
       });
     });
-    illustObserver.observe(chat, { childList: true, subtree: true });
+    illustObserver.observe(chat, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
   }
 
   function disconnectIllustObserver() {
