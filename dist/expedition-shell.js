@@ -819,6 +819,7 @@ ${THEME_CSS}
 #exp-shell-root .exp-illust{margin:1em 0;text-align:center;}
 #exp-shell-root .exp-illust img{max-width:100%;max-height:60vh;border-radius:10px;border:1px solid rgba(var(--gold-rgb),.18);cursor:pointer;box-shadow:0 4px 20px rgba(var(--sh-rgb),.25);transition:border-color .15s;}
 #exp-shell-root .exp-illust img:hover{border-color:rgba(var(--gold-rgb),.55);}
+#exp-shell-root .exp-illust video{max-width:100%;max-height:60vh;border-radius:10px;border:1px solid rgba(var(--gold-rgb),.18);box-shadow:0 4px 20px rgba(var(--sh-rgb),.25);}
 #exp-shell-root .exp-story-text p.exp-ill-slot{margin:1em 0;text-align:center;}
 #exp-shell-root .exp-story-text p.exp-ill-slot:empty{display:none;}
 #exp-shell-root .exp-illust-lb{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;}
@@ -952,7 +953,7 @@ ${THEME_CSS}
 #exp-shell-root .exp-vc-text{font-size:13.5px;line-height:1.95;}
 #exp-shell-root .exp-vc-memo,#exp-shell-root .exp-vc-empty{font-size:12.5px;line-height:1.85;}
 #exp-shell-root .exp-vc-memos{max-height:148px;}
-#exp-shell-root .exp-illust img{max-height:45vh;}
+#exp-shell-root .exp-illust img,#exp-shell-root .exp-illust video{max-height:45vh;}
 #exp-shell-root .exp-story-input{padding:8px 10px 10px;}
 #exp-shell-root .exp-story-inputrow{gap:8px;justify-content:flex-start;}
 #exp-shell-root .exp-story-input textarea{max-width:none;}
@@ -2699,9 +2700,9 @@ ${THEME_CSS}
   const PRESET_STRIP_TAGS = ['details', 'summary', 'tucao', 'danmu', 'konatan_chat', 'progress', 'current_event',
     'htmlcontent', 'guifan', 'done', 'disclaimer', 'w2g', 'VariableCheck', 'memo', 'draft', 'Interleaving',
     'choice', 'safe', 'theater', 'recap', 'background', 'parallel_world', 'meow_FM', 'time_format',
-    'aftertalk', 'Shiosai', 'snow', 'quote', 'htm1fenge', 'math', 'finish', 'WF', 'style', 'script', 'scene', 'image'];
+    'aftertalk', 'Shiosai', 'snow', 'quote', 'htm1fenge', 'math', 'finish', 'WF', 'style', 'script', 'scene', 'image', 'imgthink'];
   const PRESET_UNWRAP_TAGS = ['content', 'writing_process', 'Chain_of_Thought', 'SexualScene', 'thought', 'os',
-    'font', 'span', 'p', 'div', 'b', 'i', 'em', 'strong', 'hr', 'img', 'a', 'small', 'big', 'u', 'center', 'mark', '正文'];
+    'font', 'span', 'p', 'div', 'b', 'i', 'em', 'strong', 'hr', 'img', 'a', 'small', 'big', 'u', 'center', 'mark', '正文', 'images'];
   const PRESET_STRIP_RE = new RegExp('<(' + PRESET_STRIP_TAGS.join('|') + ')(?:\\s[^>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>|$)', 'gi');
   const PRESET_UNWRAP_RE = new RegExp('<\\/?(?:' + PRESET_UNWRAP_TAGS.join('|') + ')(?:\\s[^>]*?)?\\s*\\/?>', 'gi');
   function stripPresetNoise(text) {
@@ -2719,12 +2720,13 @@ ${THEME_CSS}
   // 插图槽位占位符: 正文提取时把st-chatu8标记换成该字符, 渲染时按序对应原生DOM里的图
   const ILL_TOKEN = '\uE97F';
   function tokenizeIllustMarkers(s) {
+    const re = illustMarkerRe();
     return s
       .replace(/<image(?:\s[^>]*)?>([\s\S]*?)<\/image\s*>/gi, (m, inner) => {
-        const n = (inner.match(/image###[\s\S]*?###/g) || []).length;
+        const n = (inner.match(re) || []).length;
         return n ? '\n' + Array(n).fill(ILL_TOKEN).join('\n') + '\n' : '';
       })
-      .replace(/image###[\s\S]*?###/g, '\n' + ILL_TOKEN + '\n');
+      .replace(re, '\n' + ILL_TOKEN + '\n');
   }
 
   const MAIN_TAG_NAMES = ['maintext', 'content', '正文'];
@@ -4268,8 +4270,6 @@ ${THEME_CSS}
   };
   eventOn(tavern_events.CHAT_CHANGED, onChatChanged);
 
-  eventOn(tavern_events.MESSAGE_SWIPED, () => { if (!isShellVisible()) renderEntry(); });
-
   // 数据库等插件改写楼层(如user消息规划改写)后刷新显示
   const onMsgMutated = mid => {
     const id = Number(mid);
@@ -4278,6 +4278,18 @@ ${THEME_CSS}
   };
   eventOn(tavern_events.MESSAGE_EDITED, onMsgMutated);
   eventOn(tavern_events.MESSAGE_UPDATED, onMsgMutated);
+  // st-chatu8等插件直接改写mes后只调renderMessage(发RENDERED事件), 不发MESSAGE_EDITED
+  eventOn(tavern_events.CHARACTER_MESSAGE_RENDERED, onMsgMutated);
+  eventOn(tavern_events.USER_MESSAGE_RENDERED, onMsgMutated);
+  eventOn(tavern_events.MESSAGE_SWIPED, mid => {
+    onMsgMutated(mid);
+    if (!isShellVisible()) renderEntry();
+  });
+  // 原生侧删楼不会通知具体楼层号(参数是删后长度), 全量失效兜底
+  eventOn(tavern_events.MESSAGE_DELETED, () => {
+    storyCacheDrop();
+    if (isShellVisible() && !sending && !delMode && !editState) renderStoryLog();
+  });
 
   // ════ init ════
   async function init() {
@@ -4413,20 +4425,45 @@ ${THEME_CSS}
   function chatu8Active() {
     try {
       const v = getVariables({ type: 'chat' });
-      return v && v.zhihuiji === 'true';
+      // 插件写入的zhihuiji可能是字符串'true'或布尔true(设置UI与默认值类型不一致)
+      if (v && (v.zhihuiji === 'true' || v.zhihuiji === true)) return true;
+    } catch (e) {}
+    try {
+      const s = (SillyTavern.getContext().extensionSettings || {})['st-chatu8'];
+      return !!s && (s.scriptEnabled === true || s.scriptEnabled === 'true');
     } catch (e) { return false; }
   }
 
-  // 按DOM序返回每个图容器的src, 生成中的容器占位为null, 保证与正文标记的序号对应
+  // 标记符号玩家可在插件设置里改, 运行时读取; 读不到时退回默认值
+  function chatu8Tags() {
+    try {
+      const s = (SillyTavern.getContext().extensionSettings || {})['st-chatu8'];
+      if (s && s.startTag && s.endTag) return { start: String(s.startTag), end: String(s.endTag) };
+    } catch (e) {}
+    return { start: 'image###', end: '###' };
+  }
+
+  function illustMarkerRe() {
+    const t = chatu8Tags();
+    const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let src = esc(t.start) + '[\\s\\S]*?' + esc(t.end);
+    // 插件的XML转换等路径无视设置硬编码产出image###, 自定义标记时两种都认
+    if (t.start !== 'image###') src += '|image###[\\s\\S]*?###';
+    return new RegExp(src, 'g');
+  }
+
+  // 按DOM序返回每个插图位: null=生成中或失败, 否则{src, video}
+  // span是稳定锚点(生成中为空span, container成功后才出现); 无span时兜底扫旧版容器
   function scanNativeImages(mesId) {
     try {
       const mesEl = doc.querySelector('#chat .mes[mesid="' + mesId + '"] .mes_text');
       if (!mesEl) return [];
-      let units = mesEl.querySelectorAll('.st-chatu8-image-container');
-      if (!units.length) units = mesEl.querySelectorAll('.st-chatu8-image-span');
+      let units = mesEl.querySelectorAll('.st-chatu8-image-span');
+      if (!units.length) units = mesEl.querySelectorAll('.st-chatu8-image-container');
       return Array.from(units).map(u => {
-        const img = u.querySelector('img');
-        return (img && img.src) ? img.src : null;
+        const media = u.querySelector('img, video');
+        const src = media && (media.currentSrc || media.src);
+        return src ? { src: src, video: media.tagName === 'VIDEO' } : null;
       });
     } catch (e) { return []; }
   }
@@ -4441,16 +4478,17 @@ ${THEME_CSS}
     return srcs;
   }
 
-  function illustImgHtml(src) {
-    return '<img src="' + escapeHtml(src) + '" loading="lazy">';
+  function illustMediaHtml(item) {
+    if (item.video) return '<video src="' + escapeHtml(item.src) + '" controls loop muted playsinline preload="metadata"></video>';
+    return '<img src="' + escapeHtml(item.src) + '" loading="lazy">';
   }
 
   // 楼底插图块: 槽位没消化完的图(如世界书楼尾标记产出)仍追加在楼层底部
   function illustTailHtml(mid, from) {
     const srcs = illustSrcs(mid);
     if (from >= srcs.length) return '';
-    return srcs.slice(from).filter(Boolean).map(src =>
-      '<div class="exp-illust" data-illust-mid="' + mid + '">' + illustImgHtml(src) + '</div>'
+    return srcs.slice(from).filter(Boolean).map(item =>
+      '<div class="exp-illust" data-illust-mid="' + mid + '">' + illustMediaHtml(item) + '</div>'
     ).join('');
   }
 
@@ -4459,8 +4497,8 @@ ${THEME_CSS}
     const srcs = illustSrcs(mid);
     let k = 0;
     const html = textHtml.replace(/<p class="exp-illust exp-ill-slot"><\/p>/g, () => {
-      const src = srcs[k++];
-      return '<p class="exp-illust exp-ill-slot">' + (src ? illustImgHtml(src) : '') + '</p>';
+      const item = srcs[k++];
+      return '<p class="exp-illust exp-ill-slot">' + (item ? illustMediaHtml(item) : '') + '</p>';
     });
     return { html: html, tail: illustTailHtml(mid, k) };
   }
@@ -4470,11 +4508,12 @@ ${THEME_CSS}
     const srcs = illustSrcs(mid);
     const slots = turnEl.querySelectorAll('.exp-story-text .exp-ill-slot');
     slots.forEach((slot, i) => {
-      const src = srcs[i] || '';
-      const img = slot.querySelector('img');
-      if (!src) { if (img) slot.innerHTML = ''; }
-      else if (!img) slot.innerHTML = illustImgHtml(src);
-      else if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      const item = srcs[i] || null;
+      const media = slot.querySelector('img, video');
+      if (!item) { if (media) slot.innerHTML = ''; return; }
+      const want = item.video ? 'VIDEO' : 'IMG';
+      if (!media || media.tagName !== want) slot.innerHTML = illustMediaHtml(item);
+      else if (media.getAttribute('src') !== item.src) media.setAttribute('src', item.src);
     });
     const tailHtml = illustTailHtml(mid, slots.length);
     const existingTail = Array.from(turnEl.querySelectorAll('.exp-illust')).filter(el => !el.classList.contains('exp-ill-slot'));
@@ -4523,37 +4562,43 @@ ${THEME_CSS}
     const chat = doc.getElementById('chat');
     if (!chat || illustObserver) return;
     let raf = 0;
+    // 跨批次累积受影响楼层: rAF去抖会丢弃旧批次的muts, 楼层号必须先攒下来
+    const pendingMids = new Set();
     illustObserver = new MutationObserver(muts => {
       let dirty = false;
       for (const m of muts) {
+        let hit = false;
         if (m.type === 'attributes') {
-          if (chatu8Node(m.target)) { dirty = true; break; }
-          continue;
+          hit = chatu8Node(m.target);
+        } else {
+          for (const n of m.addedNodes) {
+            if (chatu8Node(n)) { hit = true; break; }
+          }
+          if (!hit) for (const n of m.removedNodes) {
+            if (chatu8Node(n) || (m.target && chatu8Node(m.target))) { hit = true; break; }
+          }
         }
-        for (const n of m.addedNodes) {
-          if (chatu8Node(n)) { dirty = true; break; }
+        if (!hit) continue;
+        dirty = true;
+        let el = m.target;
+        while (el && el !== chat) {
+          if (el.classList && el.classList.contains('mes') && el.getAttribute('mesid')) {
+            pendingMids.add(+el.getAttribute('mesid'));
+            break;
+          }
+          el = el.parentElement;
         }
-        if (dirty) break;
       }
       if (!dirty) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const affected = new Set();
-        for (const m of muts) {
-          let el = m.target;
-          while (el && el !== chat) {
-            if (el.classList && el.classList.contains('mes') && el.getAttribute('mesid')) {
-              affected.add(+el.getAttribute('mesid'));
-              break;
-            }
-            el = el.parentElement;
-          }
-        }
-        for (const mid of affected) {
+        const n = pendingMids.size;
+        for (const mid of pendingMids) {
           illustCache.delete(mid);
           storyCacheDrop(mid);
         }
-        if (affected.size > 0 && isShellVisible() && !sending) renderStoryLog();
+        pendingMids.clear();
+        if (n > 0 && isShellVisible() && !sending) renderStoryLog();
       });
     });
     illustObserver.observe(chat, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
