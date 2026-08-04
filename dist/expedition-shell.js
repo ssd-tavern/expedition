@@ -45,6 +45,11 @@
     customHint: 'exp-custom-hint',
   };
 
+
+  // 护栏调试口: 平时静默; 控制台执行 localStorage.expDebug='1' 后, 被try/catch吞掉的错误会输出
+  function dbg(tag, e) {
+    try { if (window.parent.localStorage.getItem('expDebug')) console.warn('[远征dbg]', tag, e); } catch (err) {}
+  }
   // ════ 外壳可见性与入口(隐藏原生/显隐切换/进入胶囊) ════
   function ensureHideStyle() {
     let style = doc.getElementById(SEL.shellHideStyle);
@@ -1291,7 +1296,7 @@ ${THEME_CSS}
   function roomOf(loc){const parts=(loc||'').split('／').map(s=>s.trim()).filter(Boolean);if(parts.length<3)return null;const seg=parts[parts.length-1];if(!seg)return null;return SHIP_ROOMS.find(r=>r.key===seg||r.key.includes(seg)||seg.includes(r.key)||(r.别名||[]).some(a=>seg.includes(a)||a.includes(seg)))||null;}
   function safeLastMessageId() { try { return getLastMessageId(); } catch (e) { return null; } }
   function safeLSGet(key) { try { return window.parent.localStorage.getItem(key); } catch (e) { return null; } }
-  function safeLSSet(key, val) { try { window.parent.localStorage.setItem(key, val); } catch (e) {} }
+  function safeLSSet(key, val) { try { window.parent.localStorage.setItem(key, val); } catch (e) { dbg('lsSet', e); } }
 
   // ════ 状态变量(立绘选取与角色选中态) ════
   const isDeadTag = v => v === '死亡' || v === '死';
@@ -1327,20 +1332,20 @@ ${THEME_CSS}
         const v = getVariables({ type: 'message', message_id: 'latest' });
         if (v && v.stat_data) return v.stat_data;
       }
-    } catch (e) {}
+    } catch (e) { dbg('stat:latest', e); }
     try {
       if (typeof getAllVariables === 'function') {
         const v = getAllVariables();
         if (v && v.stat_data) return v.stat_data;
       }
-    } catch (e) {}
+    } catch (e) { dbg('stat:all', e); }
     try {
       if (typeof getLastMessageId === 'function' && getLastMessageId() === 0 && typeof getChatMessages === 'function') {
         const m0 = getChatMessages(0, { include_swipes: true })[0];
         const sd = m0 && m0.swipes_data && m0.swipes_data[m0.swipe_id || 0];
         if (sd && sd.stat_data) return sd.stat_data;
       }
-    } catch (e) {}
+    } catch (e) { dbg('stat:swipe0', e); }
     return null;
   }
   function previousStat() {
@@ -1351,7 +1356,7 @@ ${THEME_CSS}
         const v = getVariables({ type: 'message', message_id: lastId - 1 });
         if (v && v.stat_data) return v.stat_data;
       }
-    } catch (e) {}
+    } catch (e) { dbg('stat:prev', e); }
     return null;
   }
   function readMVU(sdArg) {
@@ -1834,7 +1839,7 @@ ${THEME_CSS}
 
   function motionOK() {
     if (motionMode !== 'full') return false;
-    try { if (window.parent.matchMedia('(prefers-reduced-motion:reduce)').matches) return false; } catch (e) {}
+    try { if (window.parent.matchMedia('(prefers-reduced-motion:reduce)').matches) return false; } catch (e) { dbg('motionQuery', e); }
     return true;
   }
 
@@ -1977,7 +1982,7 @@ ${THEME_CSS}
     }));
   }
 
-  function refreshChar(){ try { renderCharTab(readMVU()); } catch (e) {} }
+  function refreshChar(){ try { renderCharTab(readMVU()); } catch (e) { dbg('refreshChar', e); } }
   function galThumb(url, pinned, pos, tier){
     const cls = pinned ? ' pinned' : '';
     const pin = pos === 'back' ? '' : `<span class="exp-gal-pin" title="${pinned ? '取消固定' : '固定为显示立绘'}">${ICO.check}</span>`;
@@ -2043,7 +2048,7 @@ ${THEME_CSS}
     const panel = getPanel('gallery');
     const body = panel ? panel.querySelector('.exp-gal-body') : null;
     const y = body ? body.scrollTop : 0;
-    try { renderGalleryTab(readMVU()); } catch (e) {}
+    try { renderGalleryTab(readMVU()); } catch (e) { dbg('refreshGallery', e); }
     const b2 = panel ? panel.querySelector('.exp-gal-body') : null;
     if (b2) b2.scrollTop = y;
   }
@@ -3060,7 +3065,7 @@ ${THEME_CSS}
         const v = getVariables({ type: 'message', message_id: mid });
         if (v && v.stat_data) return v.stat_data;
       }
-    } catch (e) {}
+    } catch (e) { dbg('msgStat', e); }
     return null;
   }
   function floorData(mid) {
@@ -3400,7 +3405,7 @@ ${THEME_CSS}
       try {
         const m0 = getChatMessages(0, { include_swipes: true })[0];
         sd = m0 && m0.swipes_data && m0.swipes_data[n];
-      } catch (e) {}
+      } catch (e) { dbg('swipe0data', e); }
       lastStat = (sd && sd.stat_data) ? _.cloneDeep(_.omit(sd.stat_data, ['$internal'])) : null;
       prevStat = null;
     } catch (e) {
@@ -3870,7 +3875,7 @@ ${THEME_CSS}
     try {
       const m = getChatMessages(mid)[0];
       if (m && m.role === 'user') raw = m.message;
-    } catch (e) {}
+    } catch (e) { dbg('readUserMsg', e); }
     if (raw == null) return;
     editState = { mid: mid, draft: raw };
     const log = doc.getElementById(SEL.storyLog);
@@ -3999,7 +4004,7 @@ ${THEME_CSS}
     };
     const onStream = (fullText) => {
       if (currentGenId !== genId) return;
-      if (stopped) { try { SillyTavern.stopGeneration(); } catch (e) {} }
+      if (stopped) { try { SillyTavern.stopGeneration(); } catch (e) { dbg('stopGen', e); } }
       latestFullText = fullText;
       if (streamRAF == null) streamRAF = requestAnimationFrame(flushStream);
     };
@@ -4114,7 +4119,7 @@ ${THEME_CSS}
       try {
         if (SillyTavern && typeof SillyTavern.stopGeneration === 'function') SillyTavern.stopGeneration();
         else console.warn('[航海日志] 环境缺少 SillyTavern.stopGeneration, 无法停止原生生成');
-      } catch (e) {}
+      } catch (e) { dbg('stopGen2', e); }
     } else {
       pendingStop = true;
     }
@@ -4229,6 +4234,13 @@ ${THEME_CSS}
   }
 
   // ════ 事件绑定与生命周期｜变量事件监听 ════
+  // 注册即记账: 常驻监听一律走onEvent, pagehide统一注销, 不维护手写清单
+  const boundEvents = [];
+  function onEvent(name, fn) {
+    boundEvents.push([name, fn]);
+    eventOn(name, fn);
+  }
+
   const onVarUpdateEnded = (variables, variables_before_update) => {
     try {
       if (!variables || !variables.stat_data) return;
@@ -4249,7 +4261,7 @@ ${THEME_CSS}
       console.warn('[航海日志] 变量更新渲染失败', e);
     }
   };
-  eventOn('mag_variable_update_ended', onVarUpdateEnded);
+  onEvent('mag_variable_update_ended', onVarUpdateEnded);
 
   const onVarInitialized = variables => {
     try {
@@ -4259,16 +4271,16 @@ ${THEME_CSS}
       console.warn('[航海日志] 变量初始化渲染失败', e);
     }
   };
-  eventOn('mag_variable_initiailized', onVarInitialized);
+  onEvent('mag_variable_initiailized', onVarInitialized);
 
   // ════ 事件绑定与生命周期｜切聊天重载 ════
   let lastKnownChatId = null;
-  try { lastKnownChatId = SillyTavern.getCurrentChatId(); } catch (e) {}
+  try { lastKnownChatId = SillyTavern.getCurrentChatId(); } catch (e) { dbg('getChatId', e); }
   const onChatChanged = chatId => {
-    if (lastKnownChatId !== null && lastKnownChatId !== chatId) { try { reloadIframe(); } catch (e) {} return; }
+    if (lastKnownChatId !== null && lastKnownChatId !== chatId) { try { reloadIframe(); } catch (e) { dbg('reloadIframe', e); } return; }
     lastKnownChatId = chatId;
   };
-  eventOn(tavern_events.CHAT_CHANGED, onChatChanged);
+  onEvent(tavern_events.CHAT_CHANGED, onChatChanged);
 
   // 数据库等插件改写楼层(如user消息规划改写)后刷新显示
   const onMsgMutated = mid => {
@@ -4276,17 +4288,17 @@ ${THEME_CSS}
     storyCacheDrop(id);
     if (isShellVisible() && !sending && !delMode && !editState) renderStoryLog();
   };
-  eventOn(tavern_events.MESSAGE_EDITED, onMsgMutated);
-  eventOn(tavern_events.MESSAGE_UPDATED, onMsgMutated);
+  onEvent(tavern_events.MESSAGE_EDITED, onMsgMutated);
+  onEvent(tavern_events.MESSAGE_UPDATED, onMsgMutated);
   // st-chatu8等插件直接改写mes后只调renderMessage(发RENDERED事件), 不发MESSAGE_EDITED
-  eventOn(tavern_events.CHARACTER_MESSAGE_RENDERED, onMsgMutated);
-  eventOn(tavern_events.USER_MESSAGE_RENDERED, onMsgMutated);
-  eventOn(tavern_events.MESSAGE_SWIPED, mid => {
+  onEvent(tavern_events.CHARACTER_MESSAGE_RENDERED, onMsgMutated);
+  onEvent(tavern_events.USER_MESSAGE_RENDERED, onMsgMutated);
+  onEvent(tavern_events.MESSAGE_SWIPED, mid => {
     onMsgMutated(mid);
     if (!isShellVisible()) renderEntry();
   });
   // 原生侧删楼不会通知具体楼层号(参数是删后长度), 全量失效兜底
-  eventOn(tavern_events.MESSAGE_DELETED, () => {
+  onEvent(tavern_events.MESSAGE_DELETED, () => {
     storyCacheDrop();
     if (isShellVisible() && !sending && !delMode && !editState) renderStoryLog();
   });
@@ -4295,7 +4307,7 @@ ${THEME_CSS}
   async function init() {
     try {
       if (typeof waitGlobalInitialized === 'function') await waitGlobalInitialized('Mvu');
-    } catch (e) {}
+    } catch (e) { dbg('waitMvu', e); }
     lastStat = null; prevStat = null;
     storyCacheDrop();
     const prevVisible = isShellVisible();
@@ -4308,20 +4320,20 @@ ${THEME_CSS}
     ensureStoryDom();
     applyVisibility(prevVisible);
     pollAcu();
-    try { window.parent.addEventListener('exp-shell-enter', onShellEnter); } catch (e) {}
-    try { doc.addEventListener('keydown', onDocKey); } catch (e) {}
+    try { window.parent.addEventListener('exp-shell-enter', onShellEnter); } catch (e) { dbg('parentEnterEvt', e); }
+    try { doc.addEventListener('keydown', onDocKey); } catch (e) { dbg('docKeydown', e); }
     try {
       doc.addEventListener('pointerdown', onPressDown);
       doc.addEventListener('pointermove', onPressMove);
       doc.addEventListener('pointerup', clearPressed);
       doc.addEventListener('pointercancel', clearPressed);
-    } catch (e) {}
+    } catch (e) { dbg('pointerEvt', e); }
     try {
       if (window.parent.__EXP_ENTER_FLAG) {
         window.parent.__EXP_ENTER_FLAG = false;
         if (!isShellVisible()) toggleShell();
       }
-    } catch (e) {}
+    } catch (e) { dbg('enterFlag', e); }
     try {
       renderAll(true);
       renderStoryLog();
@@ -4398,9 +4410,8 @@ ${THEME_CSS}
       doc.removeEventListener('pointerup', clearPressed);
       doc.removeEventListener('pointercancel', clearPressed);
       disconnectIllustObserver();
-      eventRemoveListener('mag_variable_update_ended', onVarUpdateEnded);
-      eventRemoveListener('mag_variable_initiailized', onVarInitialized);
-      eventRemoveListener(tavern_events.CHAT_CHANGED, onChatChanged);
+      boundEvents.forEach(([name, fn]) => { try { eventRemoveListener(name, fn); } catch (e) { dbg('unbind:' + name, e); } });
+      boundEvents.length = 0;
       const root = doc.getElementById(SHELL_ID);
       if (!root || root.dataset.owner === SHELL_TOKEN) {
         if (root) root.remove();
@@ -4411,7 +4422,7 @@ ${THEME_CSS}
         const hideStyle = doc.getElementById(SEL.shellHideStyle);
         if (hideStyle) hideStyle.remove();
       }
-    } catch (e) {}
+    } catch (e) { dbg('pagehide', e); }
   });
 
   if (typeof $ === 'function' && typeof errorCatched === 'function') {
@@ -4427,7 +4438,7 @@ ${THEME_CSS}
       const v = getVariables({ type: 'chat' });
       // 插件写入的zhihuiji可能是字符串'true'或布尔true(设置UI与默认值类型不一致)
       if (v && (v.zhihuiji === 'true' || v.zhihuiji === true)) return true;
-    } catch (e) {}
+    } catch (e) { dbg('chatu8Active', e); }
     try {
       const s = (SillyTavern.getContext().extensionSettings || {})['st-chatu8'];
       return !!s && (s.scriptEnabled === true || s.scriptEnabled === 'true');
@@ -4439,7 +4450,7 @@ ${THEME_CSS}
     try {
       const s = (SillyTavern.getContext().extensionSettings || {})['st-chatu8'];
       if (s && s.startTag && s.endTag) return { start: String(s.startTag), end: String(s.endTag) };
-    } catch (e) {}
+    } catch (e) { dbg('chatu8Tags', e); }
     return { start: 'image###', end: '###' };
   }
 
