@@ -74,7 +74,7 @@
       root.style.display = visible ? 'flex' : 'none';
     }
     ensureHideStyle().disabled = !visible;
-    if (visible) hideEntry();
+    if (visible) { hideEntry(); raiseAcuUi(); }
     else renderEntry();
   }
 
@@ -1515,9 +1515,13 @@ ${THEME_CSS}
     }
   }
 
+  // 插件主界面z-index与外壳同为9000, 层级由DOM顺序定; root是static元素, 必须补position才能让z-index生效
   function raiseAcuUi() {
     const v2 = doc.getElementById('acu-app-v2');
-    if (v2 && v2.style.zIndex !== '9200') v2.style.setProperty('z-index', '9200', 'important');
+    if (v2 && v2.style.zIndex !== '9200') {
+      v2.style.setProperty('position', 'relative', 'important');
+      v2.style.setProperty('z-index', '9200', 'important');
+    }
     doc.querySelectorAll('.auto-card-updater-popup').forEach(el => {
       if (el.style.zIndex !== '9200') el.style.setProperty('z-index', '9200', 'important');
     });
