@@ -2694,11 +2694,20 @@ ${THEME_CSS}
     return parts.join('\n\n').trim();
   }
 
-  function applyDisplayRegexes(text) {
+  // 不传depth时酒馆助手会无视正则的最小/最大深度设置, 隐藏类正则(如数据库远楼层)会越界清空全部楼层
+  function msgDepth(mid) {
+    const last = safeLastMessageId();
+    return (Number.isInteger(mid) && Number.isInteger(last) && last >= mid) ? last - mid : 0;
+  }
+
+  function applyDisplayRegexes(text, depth) {
     if (!text) return text;
     try {
       if (typeof formatAsTavernRegexedString === 'function') {
-        text = formatAsTavernRegexedString(text, 'ai_output', 'display');
+        const out = formatAsTavernRegexedString(text, 'ai_output', 'display',
+          Number.isInteger(depth) && depth >= 0 ? { depth: depth } : undefined);
+        // 正则把非空正文整段清空视为隐藏类误伤, 故事日志显示层保留原文
+        if (String(out).trim() || !text.trim()) text = String(out);
       }
     } catch (e) { console.warn('[远征前端] 应用酒馆显示正则失败, 按原文显示:', e); }
     return text
@@ -2752,31 +2761,31 @@ ${THEME_CSS}
     return null;
   }
 
-  function extractMainText(raw, streaming) {
+  function extractMainText(raw, streaming, depth) {
     if (!raw) return '';
     if (/^\s*(?:<StatusPlaceHolderImpl\s*\/?>\s*)*【开场介绍】/.test(raw)) return '';
     const s = stripThink(raw);
     const main = findMainBlock(s);
     if (main) {
       const body = main.body;
-      if (main.closed) return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(body.replace(/<UpdateVariable>[\s\S]*?<\/UpdateVariable>/gi, '')))).trim();
+      if (main.closed) return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(body.replace(/<UpdateVariable>[\s\S]*?<\/UpdateVariable>/gi, ''))), depth).trim();
       return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(body
         .replace(/<options>[\s\S]*$/i, '')
         .replace(/<branches>[\s\S]*$/i, '')
         .replace(/<UpdateVariable>[\s\S]*$/i, '')
         .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, '')))
         .replace(/<!--[\s\S]*$/, '')
-        .replace(/<\/?[a-z]*$/i, '')).trim();
+        .replace(/<\/?[a-z]*$/i, ''), depth).trim();
     }
     if (streaming) return '';
     return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(s
       .replace(/<UpdateVariable>[\s\S]*?(?:<\/UpdateVariable>|$)/gi, '')
       .replace(/<options>[\s\S]*?(?:<\/options>|$)/gi, '')
       .replace(/<branches>[\s\S]*?(?:<\/branches>|$)/gi, '')
-      .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, '')))).trim();
+      .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, ''))), depth).trim();
   }
 
-  function extractOptions(raw) {
+  function extractOptions(raw, depth) {
     if (!raw) return [];
     const s = stripThink(raw);
     const i = s.toLowerCase().lastIndexOf('<options>');
@@ -2784,7 +2793,7 @@ ${THEME_CSS}
       const body = s.slice(i + '<options>'.length);
       const j = body.toLowerCase().indexOf('</options>');
       if (j < 0) return [];
-      return applyDisplayRegexes(body.slice(0, j)).split('\n')
+      return applyDisplayRegexes(body.slice(0, j), depth).split('\n')
         .map(l => l.replace(/^\s*(?:\d+[.、)]|[-*])\s*/, '').trim())
         .filter(Boolean)
         .slice(0, 6);
@@ -2794,7 +2803,7 @@ ${THEME_CSS}
     const body = s.slice(b + '<branches>'.length);
     const j = body.toLowerCase().indexOf('</branches>');
     if (j < 0) return [];
-    return applyDisplayRegexes(body.slice(0, j)).split('\n')
+    return applyDisplayRegexes(body.slice(0, j), depth).split('\n')
       .map(l => (l.match(/^\s*[A-Za-z][.、)]\s*(.+?)\s*$/) || [])[1])
       .filter(Boolean)
       .slice(0, 10);
@@ -3136,7 +3145,7 @@ ${THEME_CSS}
     if (data === undefined) {
       data = m.role === 'user'
         ? { role: 'user', text: userDisplayText(m.message), thought: '', mid: m.message_id }
-        : { role: 'assistant', text: extractMainText(m.message), thought: nativeReasoning(m) || extractThought(m.message), mid: m.message_id };
+        : { role: 'assistant', text: extractMainText(m.message, false, msgDepth(m.message_id)), thought: nativeReasoning(m) || extractThought(m.message), mid: m.message_id };
       storyHtmlCache.set(m.message_id, data);
     }
     return data;
@@ -3239,7 +3248,7 @@ ${THEME_CSS}
     currentOptions = null;
     const last = messages[messages.length - 1];
     if (!sending && last && last.role !== 'user') {
-      const opts = extractOptions(last.message);
+      const opts = extractOptions(last.message, msgDepth(last.message_id));
       if (opts.length) {
         currentOptions = opts;
         log.insertAdjacentHTML('beforeend', optionsHtml(opts));
@@ -3979,7 +3988,7 @@ ${THEME_CSS}
       streamRAF = null;
       const log = doc.getElementById(SEL.storyLog);
       if (!log) return;
-      const target = extractMainText(latestFullText, true);
+      const target = extractMainText(latestFullText, true, 0);
       const existing = log.querySelector('[data-stream-genid="' + genId + '"]');
       const stick = nearBottom(log);
       if (!target) {
