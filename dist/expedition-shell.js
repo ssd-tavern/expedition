@@ -2671,6 +2671,13 @@ ${THEME_CSS}
     return null;
   }
 
+  // 潮汐系: 正文前有基础确认/西语草稿/修改确认三段流水线, 无独立思维链标签包裹, 统一并入思维链展示
+  function tideDraftMatch(raw) {
+    if (!/<基础确认>/i.test(raw)) return null;
+    const b = String(raw).search(/<content(?:\s[^>]*)?>/i);
+    return b > 0 ? { bodyEnd: b, tagEnd: b } : null;
+  }
+
   function stripThink(raw) {
     const s = String(raw);
     const afterOpenBased = s
@@ -2684,6 +2691,12 @@ ${THEME_CSS}
 
   function extractThought(raw, streaming) {
     if (!raw) return '';
+    // 潮汐系<draft>是西语正文草稿而非思维链, 与通用THOUGHT_TAG_NAMES里的draft撞名, 须先分流避免被当成思维链截断
+    if (/<基础确认>/i.test(raw)) {
+      const tide = tideDraftMatch(raw);
+      if (tide) return raw.slice(0, tide.bodyEnd).trim();
+      if (streaming) return raw.trim();
+    }
     const re = new RegExp(THOUGHT_OPEN_RE + '([\\s\\S]*?)' + THOUGHT_CLOSE_RE, 'gi');
     let m, parts = [];
     while ((m = re.exec(raw))) parts.push(m[1].trim());
@@ -2740,7 +2753,9 @@ ${THEME_CSS}
       .replace(PRESET_UNWRAP_RE, '')
       .replace(/<!--[\s\S]*?-->/g, '')
       .replace(/^\s*###\s*正文\s*$/gm, '')
-      .replace(/image###[\s\S]*?###/g, '');
+      .replace(/image###[\s\S]*?###/g, '')
+      // 梦鲸系: 作废段落只输出裸闭合标签</dream_delete>, 无配对开标签
+      .replace(/<\/dream_delete>/gi, '');
   }
 
   // 插图槽位占位符: 正文提取时把st-chatu8标记换成该字符, 渲染时按序对应原生DOM里的图
@@ -2755,7 +2770,7 @@ ${THEME_CSS}
       .replace(re, '\n' + ILL_TOKEN + '\n');
   }
 
-  const MAIN_TAG_NAMES = ['maintext', 'content', '正文'];
+  const MAIN_TAG_NAMES = ['maintext', 'content', '正文', 'dream_body'];
   function findMainBlock(s) {
     for (const tag of MAIN_TAG_NAMES) {
       const re = new RegExp('<' + tag + '(?:\\s[^>]*)?>', 'gi');
@@ -2780,6 +2795,8 @@ ${THEME_CSS}
       return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(body
         .replace(/<options>[\s\S]*$/i, '')
         .replace(/<branches>[\s\S]*$/i, '')
+        .replace(/<choice>[\s\S]*$/i, '')
+        .replace(/<dream_option>[\s\S]*$/i, '')
         .replace(/<UpdateVariable>[\s\S]*$/i, '')
         .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, '')))
         .replace(/<!--[\s\S]*$/, '')
@@ -2790,16 +2807,20 @@ ${THEME_CSS}
       .replace(/<UpdateVariable>[\s\S]*?(?:<\/UpdateVariable>|$)/gi, '')
       .replace(/<options>[\s\S]*?(?:<\/options>|$)/gi, '')
       .replace(/<branches>[\s\S]*?(?:<\/branches>|$)/gi, '')
+      .replace(/<choice>[\s\S]*?(?:<\/choice>|$)/gi, '')
+      .replace(/<dream_option>[\s\S]*?(?:<\/dream_option>|$)/gi, '')
       .replace(/<StatusPlaceHolderImpl\s*\/?>/gi, ''))), depth).trim();
   }
 
   function extractOptions(raw, depth) {
     if (!raw) return [];
     const s = stripThink(raw);
-    const i = s.toLowerCase().lastIndexOf('<options>');
-    if (i >= 0) {
-      const body = s.slice(i + '<options>'.length);
-      const j = body.toLowerCase().indexOf('</options>');
+    // 潮汐系用<choice>, 数字编号格式与<options>一致
+    for (const tag of ['options', 'choice']) {
+      const i = s.toLowerCase().lastIndexOf('<' + tag + '>');
+      if (i < 0) continue;
+      const body = s.slice(i + tag.length + 2);
+      const j = body.toLowerCase().indexOf('</' + tag + '>');
       if (j < 0) return [];
       return applyDisplayRegexes(body.slice(0, j), depth).split('\n')
         .map(l => l.replace(/^\s*(?:\d+[.、)]|[-*])\s*/, '').trim())
@@ -2807,14 +2828,25 @@ ${THEME_CSS}
         .slice(0, 6);
     }
     const b = s.toLowerCase().lastIndexOf('<branches>');
-    if (b < 0) return [];
-    const body = s.slice(b + '<branches>'.length);
-    const j = body.toLowerCase().indexOf('</branches>');
+    if (b >= 0) {
+      const body = s.slice(b + '<branches>'.length);
+      const j = body.toLowerCase().indexOf('</branches>');
+      if (j < 0) return [];
+      return applyDisplayRegexes(body.slice(0, j), depth).split('\n')
+        .map(l => (l.match(/^\s*[A-Za-z][.、)]\s*(.+?)\s*$/) || [])[1])
+        .filter(Boolean)
+        .slice(0, 10);
+    }
+    // 梦鲸系用<dream_option>, 选项间用|分隔而非换行编号
+    const d = s.toLowerCase().lastIndexOf('<dream_option>');
+    if (d < 0) return [];
+    const body = s.slice(d + '<dream_option>'.length);
+    const j = body.toLowerCase().indexOf('</dream_option>');
     if (j < 0) return [];
-    return applyDisplayRegexes(body.slice(0, j), depth).split('\n')
-      .map(l => (l.match(/^\s*[A-Za-z][.、)]\s*(.+?)\s*$/) || [])[1])
+    return applyDisplayRegexes(body.slice(0, j), depth).split('|')
+      .map(l => l.trim())
       .filter(Boolean)
-      .slice(0, 10);
+      .slice(0, 6);
   }
 
   function optionsHtml(opts) {
