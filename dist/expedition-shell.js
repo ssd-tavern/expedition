@@ -2658,7 +2658,7 @@ ${THEME_CSS}
   const THOUGHT_TAG_RE = THOUGHT_TAG_NAMES.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   const THOUGHT_OPEN_RE = '<(?:' + THOUGHT_TAG_RE + ')>';
   const THOUGHT_CLOSE_RE = '(?:<\\/(?:' + THOUGHT_TAG_RE + ')>|<!--\\s*(?:end_of_梳理|1·思考结束|end_of_Subtext_think)\\s*-->|我将进行符合需求的创作：|#{1,6}\\s*正式创作)';
-  // 明月秋青系: 思维链以[metacognition]/[love_qkll]开头, 可能没有任何闭合标记直接接正文
+  // 明月秋青预设: 思维链以[metacognition]/[love_qkll]开头, 可能没有任何闭合标记直接接正文
   const THOUGHT_HEAD_RE = /^\s*\[(?:metacognition|love_qkll)\]/i;
 
   function bareThoughtMatch(raw) {
@@ -2671,7 +2671,7 @@ ${THEME_CSS}
     return null;
   }
 
-  // 潮汐系: 正文前有基础确认/西语草稿/修改确认三段流水线, 无独立思维链标签包裹, 统一并入思维链展示
+  // 潮汐预设: 正文前有基础确认/草稿/修改确认三段流水线且无独立思维链标签包裹, 统一并入思维链展示
   function tideDraftMatch(raw) {
     if (!/<基础确认>/i.test(raw)) return null;
     const b = String(raw).search(/<content(?:\s[^>]*)?>/i);
@@ -2691,7 +2691,7 @@ ${THEME_CSS}
 
   function extractThought(raw, streaming) {
     if (!raw) return '';
-    // 潮汐系<draft>是西语正文草稿而非思维链, 与通用THOUGHT_TAG_NAMES里的draft撞名, 须先分流避免被当成思维链截断
+    // 潮汐预设的<draft>是西语正文草稿而非思维链, 与THOUGHT_TAG_NAMES里另一预设的draft撞名, 须先分流避免被当成思维链截断
     if (/<基础确认>/i.test(raw)) {
       const tide = tideDraftMatch(raw);
       if (tide) return raw.slice(0, tide.bodyEnd).trim();
@@ -2736,6 +2736,7 @@ ${THEME_CSS}
       .replace(/<\/?ruby(?:\s[^>]*)?>/gi, '');
   }
 
+  // choice在此处指正文内部的旁支旧用法(非潮汐预设的选项块, 后者的<choice>在</content>之后, extractOptions单独处理)
   const PRESET_STRIP_TAGS = ['details', 'summary', 'tucao', 'danmu', 'konatan_chat', 'progress', 'current_event',
     'htmlcontent', 'guifan', 'done', 'disclaimer', 'w2g', 'VariableCheck', 'memo', 'draft', 'Interleaving',
     'choice', 'safe', 'theater', 'recap', 'background', 'parallel_world', 'meow_FM', 'time_format',
@@ -2754,11 +2755,11 @@ ${THEME_CSS}
       .replace(/<!--[\s\S]*?-->/g, '')
       .replace(/^\s*###\s*正文\s*$/gm, '')
       .replace(/image###[\s\S]*?###/g, '')
-      // 梦鲸系: 作废段落只输出裸闭合标签</dream_delete>, 无配对开标签
+      // 梦鲸预设: 作废段落只输出裸闭合标签</dream_delete>, 无配对开标签
       .replace(/<\/dream_delete>/gi, '');
   }
 
-  // 插图槽位占位符: 正文提取时把st-chatu8标记换成该字符, 渲染时按序对应原生DOM里的图
+  // 插图槽位占位符: 正文提取时把st-chatu8(智绘姬)插件的插图标记换成该字符, 渲染时按序对应原生DOM里的图
   const ILL_TOKEN = '\uE97F';
   function tokenizeIllustMarkers(s) {
     const re = illustMarkerRe();
@@ -2770,7 +2771,7 @@ ${THEME_CSS}
       .replace(re, '\n' + ILL_TOKEN + '\n');
   }
 
-  const MAIN_TAG_NAMES = ['maintext', 'content', '正文', 'dream_body'];
+  const MAIN_TAG_NAMES = ['maintext', 'content', '正文', 'dream_body']; // dream_body为梦鲸预设专用
   function findMainBlock(s) {
     for (const tag of MAIN_TAG_NAMES) {
       const re = new RegExp('<' + tag + '(?:\\s[^>]*)?>', 'gi');
@@ -2815,7 +2816,7 @@ ${THEME_CSS}
   function extractOptions(raw, depth) {
     if (!raw) return [];
     const s = stripThink(raw);
-    // 潮汐系用<choice>, 数字编号格式与<options>一致
+    // 潮汐预设用<choice>, 数字编号格式与<options>一致
     for (const tag of ['options', 'choice']) {
       const i = s.toLowerCase().lastIndexOf('<' + tag + '>');
       if (i < 0) continue;
@@ -2837,7 +2838,7 @@ ${THEME_CSS}
         .filter(Boolean)
         .slice(0, 10);
     }
-    // 梦鲸系用<dream_option>, 选项间用|分隔而非换行编号
+    // 梦鲸预设用<dream_option>, 选项间用|分隔而非换行编号
     const d = s.toLowerCase().lastIndexOf('<dream_option>');
     if (d < 0) return [];
     const body = s.slice(d + '<dream_option>'.length);
@@ -4404,7 +4405,7 @@ ${THEME_CSS}
   };
   onEvent(tavern_events.MESSAGE_EDITED, onMsgMutated);
   onEvent(tavern_events.MESSAGE_UPDATED, onMsgMutated);
-  // st-chatu8等插件直接改写mes后只调renderMessage(发RENDERED事件), 不发MESSAGE_EDITED
+  // st-chatu8(智绘姬)等插件直接改写mes后只调renderMessage(发RENDERED事件), 不发MESSAGE_EDITED
   onEvent(tavern_events.CHARACTER_MESSAGE_RENDERED, onMsgMutated);
   onEvent(tavern_events.USER_MESSAGE_RENDERED, onMsgMutated);
   onEvent(tavern_events.MESSAGE_SWIPED, mid => {
@@ -4544,7 +4545,7 @@ ${THEME_CSS}
   } else {
     (document.readyState === 'loading') ? document.addEventListener('DOMContentLoaded', init) : init();
   }
-  // ════ st-chatu8 插图集成 ════
+  // ════ st-chatu8(智绘姬)插图集成 ════
   const illustCache = new Map();
 
   function chatu8Active() {
