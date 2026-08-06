@@ -693,6 +693,13 @@ ${THEME_CSS}
 #exp-shell-root .exp-panel[data-panel="story"]{padding:0;overflow:hidden;}
 #exp-shell-root .exp-story{display:flex;flex-direction:column;height:100%;}
 #exp-shell-root .exp-story-log{flex:1;overflow-y:auto;padding:36px 32px 20px;}
+#exp-shell-root .exp-story-earlier{display:flex;align-items:center;gap:14px;width:100%;max-width:var(--read-col);margin:0 auto 20px;padding:0;border:none;background:none;cursor:pointer;font-family:inherit;font-size:12px;letter-spacing:2px;white-space:nowrap;color:var(--gold-soft);transition:color .15s;}
+#exp-shell-root .exp-story-earlier::before,#exp-shell-root .exp-story-earlier::after{content:'';flex:1;height:1px;}
+#exp-shell-root .exp-story-earlier::before{background:linear-gradient(90deg,transparent,rgba(var(--gold-rgb),.25));}
+#exp-shell-root .exp-story-earlier::after{background:linear-gradient(90deg,rgba(var(--gold-rgb),.25),transparent);}
+#exp-shell-root .exp-story-earlier:hover{color:var(--gold-hi);}
+#exp-shell-root[data-theme="parchment"] .exp-story-earlier,#exp-shell-root[data-theme="ivory"] .exp-story-earlier,#exp-shell-root[data-theme="marble"] .exp-story-earlier{color:var(--text-faint);}
+#exp-shell-root[data-theme="parchment"] .exp-story-earlier:hover,#exp-shell-root[data-theme="ivory"] .exp-story-earlier:hover,#exp-shell-root[data-theme="marble"] .exp-story-earlier:hover{color:var(--gold-soft);}
 #exp-shell-root .exp-story-turn{max-width:var(--read-col);margin:0 auto 24px;}
 #exp-shell-root .exp-story-turn.user{text-align:right;}
 #exp-shell-root .exp-story-turn.user .exp-story-text{display:inline-block;text-align:left;background:rgba(var(--accent-rgb,var(--gold-rgb)),.10);border:1px solid rgba(var(--accent-rgb,var(--gold-rgb)),.26);color:var(--text-strong);border-radius:11px;padding:9px 14px;white-space:pre-wrap;font-size:16px;line-height:1.85;transition:transform .12s,border-color .12s,background .12s;}
@@ -1086,10 +1093,11 @@ ${THEME_CSS}
 
 /* ===== 体验优化 ===== */
 #exp-shell-root .exp-story{position:relative;}
-#exp-shell-root .exp-story-jump{position:absolute;right:20px;bottom:120px;z-index:6;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;background:rgba(var(--pop-rgb),.92);border:1px solid rgba(var(--gold-rgb),.45);color:var(--accent,var(--gold-hi));box-shadow:0 4px 14px rgba(var(--sh-rgb),.35);opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease-out),background .15s,border-color .15s,transform .15s;}
-#exp-shell-root .exp-story-jump:hover{background:rgba(var(--pop-rgb),1);border-color:rgba(var(--gold-rgb),.7);transform:translateY(-2px);}
-#exp-shell-root .exp-story-jump.show{opacity:1;pointer-events:auto;}
-#exp-shell-root .exp-story-jump svg{width:17px;height:17px;transform:rotate(90deg);}
+#exp-shell-root .exp-story-jump{position:absolute;right:18px;bottom:120px;z-index:6;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:4px;background:none;border:none;color:var(--text-faint);opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease-out),color .2s;}
+#exp-shell-root .exp-story-jump:hover{color:var(--gold-soft);}
+#exp-shell-root .exp-story-jump.show{opacity:.4;pointer-events:auto;}
+#exp-shell-root .exp-story-jump.show:hover{opacity:.85;}
+#exp-shell-root .exp-story-jump svg{width:24px;height:24px;}
 #exp-shell-root[data-fontsize="lg"]{--read-col:760px;}
 #exp-shell-root[data-fontsize="lg"] .exp-story-turn.assistant .exp-story-text{font-size:19px;}
 #exp-shell-root[data-fontsize="lg"] .exp-story-turn.user .exp-story-text{font-size:17px;}
@@ -2843,7 +2851,7 @@ ${THEME_CSS}
             <button class="exp-del-btn danger" id="${SEL.delConfirm}" disabled>删除</button>
           </div>
         </div>
-        <button class="exp-story-jump" id="${SEL.storyJump}" title="回到最新">${ICO.chev}</button>
+        <button class="exp-story-jump" id="${SEL.storyJump}" title="回到最新"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10l5 5 5-5"/></svg></button>
       </div>
     `;
     doc.getElementById(SEL.storyLog).addEventListener('scroll', updateJumpBtn);
@@ -3036,6 +3044,13 @@ ${THEME_CSS}
       const input = doc.querySelector('#exp-shell-root .exp-story-input');
       const status = doc.getElementById(SEL.storyStatus);
       btn.style.bottom = (((input && input.offsetHeight) || 0) + ((status && status.offsetHeight) || 0) + 14) + 'px';
+      const send = doc.getElementById(SEL.storySend);
+      const story = btn.offsetParent;
+      if (send && story) {
+        const sr = send.getBoundingClientRect();
+        const pr = story.getBoundingClientRect();
+        btn.style.right = (pr.right - sr.x - sr.width / 2 - btn.offsetWidth / 2) + 'px';
+      }
     }
     btn.classList.toggle('show', show);
   }
@@ -3054,6 +3069,11 @@ ${THEME_CSS}
   let currentOptions = null;
 
   // ════ 逐楼变量(floorData/楼尾展示配置) ════
+  const WINDOW_SIZE = 50;
+  const WINDOW_STEP = 50;
+  let windowCount = WINDOW_SIZE;
+  let loadingEarlier = false;
+
   const floorCache = new Map();
   const footOpen = new Map();
   function storyCacheDrop(id) {
@@ -3070,6 +3090,7 @@ ${THEME_CSS}
       footOpen.clear();
       lastRenderedRef.clear();
       illustCache.clear();
+      windowCount = WINDOW_SIZE;
     }
   }
   function msgStat(mid) {
@@ -3174,6 +3195,8 @@ ${THEME_CSS}
     wrap.innerHTML = floorFootInner(mid);
   }
   function onStoryLogClick(e) {
+    const sentinel = e.target.closest('.exp-story-earlier');
+    if (sentinel) { e.stopPropagation(); loadEarlier(); return; }
     if (delMode) {
       const head = e.target.closest('.exp-story-thought-head');
       if (head) {
@@ -3325,7 +3348,7 @@ ${THEME_CSS}
           const tpl = doc.createElement('template');
           tpl.innerHTML = html;
           const newEl = tpl.content.firstElementChild;
-          if (motionOK() && !coldStart) newEl.classList.add('exp-in-bubble');
+          if (motionOK() && !coldStart && !loadingEarlier) newEl.classList.add('exp-in-bubble');
           log.insertBefore(newEl, cursor);
           lastRenderedRef.set(mid, data);
         }
@@ -3357,25 +3380,60 @@ ${THEME_CSS}
     footerBackfillRAF = requestAnimationFrame(chunk);
   }
 
+  function loadEarlier() {
+    if (delMode || sending) return;
+    const log = doc.getElementById(SEL.storyLog);
+    if (!log) return;
+    loadingEarlier = true;
+    windowCount += WINDOW_STEP;
+    renderStoryLog();
+    loadingEarlier = false;
+  }
+
   function renderStoryLog() {
     const log = doc.getElementById(SEL.storyLog);
     if (!log) return;
     try {
       const stick = !log.childElementCount || nearBottom(log);
       const prevTop = log.scrollTop;
+      const prevHeight = log.scrollHeight;
       let messages = fetchStoryMessages();
       if (!messages) { log.innerHTML = ''; lastRenderedRef.clear(); return; }
       if (sending && genBaselineId != null) messages = messages.filter(m => m.message_id <= genBaselineId);
       if (messages.length && messages[0].message_id === 0 && floor0SwipeId() === 0) messages = messages.slice(1);
-      const coldStart = lastRenderedRef.size === 0 && messages.length > 0;
-      patchStoryLog(log, messages, coldStart);
+      const totalCount = messages.length;
+      const wStart = Math.max(0, totalCount - windowCount);
+      const windowed = messages.slice(wStart);
+      const hasEarlier = wStart > 0;
+      const coldStart = lastRenderedRef.size === 0 && windowed.length > 0;
+      patchStoryLog(log, windowed, coldStart);
+      const existingSentinel = log.querySelector('.exp-story-earlier');
+      if (hasEarlier) {
+        const label = '还有 ' + wStart + ' 条更早的记录';
+        if (existingSentinel) {
+          existingSentinel.textContent = label;
+        } else {
+          const el = doc.createElement('button');
+          el.className = 'exp-story-earlier';
+          el.textContent = label;
+          log.insertBefore(el, log.firstChild);
+        }
+      } else if (existingSentinel) {
+        existingSentinel.remove();
+      }
       if (delMode) {
         applyDelModeClasses(log);
       } else {
-        patchOptionsStrip(log, messages);
+        patchOptionsStrip(log, windowed);
         applyUserEdit(log);
       }
-      log.scrollTop = stick ? log.scrollHeight : prevTop;
+      if (stick) {
+        log.scrollTop = log.scrollHeight;
+      } else if (loadingEarlier) {
+        log.scrollTop = prevTop + (log.scrollHeight - prevHeight);
+      } else {
+        log.scrollTop = prevTop;
+      }
       updateJumpBtn();
       if (coldStart) scheduleFooterBackfill(log);
     } catch (e) {
@@ -4401,7 +4459,7 @@ ${THEME_CSS}
     } catch (err) {}
   }
 
-  const PRESSABLE_SEL = '.exp-nav-item,.exp-iconbtn,.exp-story-opt,.exp-mate-btn,.exp-prey-card,.exp-theme-opt,.exp-hunt-go,.exp-del-btn,.exp-edit-btn,.exp-tb-close,.exp-mapctl button,.exp-entry-pill,.exp-story-thought-head,.exp-story-jump';
+  const PRESSABLE_SEL = '.exp-nav-item,.exp-iconbtn,.exp-story-opt,.exp-story-earlier,.exp-mate-btn,.exp-prey-card,.exp-theme-opt,.exp-hunt-go,.exp-del-btn,.exp-edit-btn,.exp-tb-close,.exp-mapctl button,.exp-entry-pill,.exp-story-thought-head,.exp-story-jump';
   let pressState = null;
 
   function clearPressed() {
