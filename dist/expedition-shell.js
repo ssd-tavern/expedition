@@ -4019,6 +4019,9 @@ ${THEME_CSS}
       } catch (e) { console.warn('[航海日志] 补发编辑事件失败', e); }
     }
     editState = null;
+    const log = doc.getElementById(SEL.storyLog);
+    const editingTurn = log && log.querySelector('.exp-story-turn.editing[data-mid="' + mid + '"]');
+    if (editingTurn) editingTurn.remove();
     setStoryStatus(save && !text ? '空内容未保存, 已还原' : '');
     renderStoryLog();
   }
