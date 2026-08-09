@@ -75,7 +75,7 @@
     }
     ensureHideStyle().disabled = !visible;
     if (visible) { hideEntry(); raiseAcuUi(); }
-    else renderEntry();
+    else { closeLightbox(); renderEntry(); }
   }
 
   function toggleShellImpl() {
@@ -2048,7 +2048,7 @@ ${THEME_CSS}
     const rerender = () => keepScroll(() => renderGalleryTab(D));
     panel.querySelectorAll('.exp-gal-thumb').forEach(b => {
       const it = { url: b.dataset.url, pos: b.dataset.pos, tier: b.dataset.tier === '' ? null : +b.dataset.tier };
-      b.addEventListener('click', () => { const items = galItems(name); const idx = items.findIndex(x => x.url === it.url); openLightbox(name, idx < 0 ? 0 : idx); });
+      b.addEventListener('click', () => { const items = lbItems(name); const idx = items.findIndex(x => x.url === it.url); openLightbox(name, idx < 0 ? 0 : idx); });
       const pin = b.querySelector('.exp-gal-pin');
       if (pin) pin.addEventListener('click', e => { e.stopPropagation(); togglePin(name, it); rerender(); });
     });
@@ -2912,7 +2912,7 @@ ${THEME_CSS}
   function storyParas(text, streaming) {
     const escaped = escapeHtml(text);
     const marked = streaming ? escaped : escaped
-      .replace(/“([^”]*)”/g, '<span class="exp-quote">“$1”</span>')
+      .replace(/“([^”\n]*?)”/g, '<span class="exp-quote">“$1”</span>')
       .replace(/&quot;([^\n]*?)&quot;/g, '<span class="exp-quote">&quot;$1&quot;</span>');
     return marked.split(/\n+/).map(s => s.trim()).filter(Boolean);
   }
@@ -3121,6 +3121,7 @@ ${THEME_CSS}
       storyHtmlCache.clear();
       floorCache.clear();
       footOpen.clear();
+      thoughtFoldOpen.clear();
       lastRenderedRef.clear();
       illustCache.clear();
       windowCount = WINDOW_SIZE;
@@ -3196,10 +3197,17 @@ ${THEME_CSS}
 
   function cachedTurnData(m) {
     let data = storyHtmlCache.get(m.message_id);
-    if (data === undefined) {
-      data = m.role === 'user'
-        ? { role: 'user', text: userDisplayText(m.message), thought: '', mid: m.message_id }
-        : { role: 'assistant', text: extractMainText(m.message, false, msgDepth(m.message_id)), thought: nativeReasoning(m) || extractThought(m.message), mid: m.message_id };
+    if (m.role === 'user') {
+      if (data === undefined) {
+        data = { role: 'user', text: userDisplayText(m.message), thought: '', mid: m.message_id };
+        storyHtmlCache.set(m.message_id, data);
+      }
+      return data;
+    }
+    // AI楼正文经depth限定的显示正则处理, depth随新楼产生而增大, 变了就作废重算
+    const depth = msgDepth(m.message_id);
+    if (data === undefined || data.depth !== depth) {
+      data = { role: 'assistant', text: extractMainText(m.message, false, depth), thought: nativeReasoning(m) || extractThought(m.message), mid: m.message_id, depth: depth };
       storyHtmlCache.set(m.message_id, data);
     }
     return data;
@@ -4265,7 +4273,14 @@ ${THEME_CSS}
         renderAll(true);
       }
     } catch (e) {
+      pendingStop = false;
       setStoryStatus('出错: ' + (e && e.message ? e.message : e));
+      setGenerating(false);
+      return;
+    }
+    if (pendingStop) {
+      pendingStop = false;
+      setStoryStatus('已停止');
       setGenerating(false);
       return;
     }
@@ -4373,7 +4388,7 @@ ${THEME_CSS}
           : null;
         renderAll(false, afterD);
         playStatFx();
-        if (isShellVisible() && !sending) renderStoryLog();
+        if (isShellVisible() && !sending && !delMode && !editState) renderStoryLog();
       }
     } catch (e) {
       console.warn('[航海日志] 变量更新渲染失败', e);
@@ -4523,6 +4538,7 @@ ${THEME_CSS}
       window.parent.removeEventListener('resize', onMapResize);
       window.parent.removeEventListener('exp-shell-enter', onShellEnter);
       doc.removeEventListener('keydown', onDocKey);
+      doc.removeEventListener('keydown', lbKey);
       doc.removeEventListener('pointerdown', onPressDown);
       doc.removeEventListener('pointermove', onPressMove);
       doc.removeEventListener('pointerup', clearPressed);
