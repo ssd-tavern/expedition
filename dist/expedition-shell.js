@@ -2205,10 +2205,18 @@ ${THEME_CSS}
     return { index, end: m.index + m[0].length, tag: m[1].toLowerCase() };
   }
   var DOC_ROOT_RE = /<dream_plot(?:\s[^<>]*)?>/i;
+  var TG_PRE_RE = /(?:^|\n)[ \t]*<!--\s*\d\.\s*正文前的格式\s*-->/g;
+  var TG_BODY_RE = /(?:^|\n)[ \t]*<!--\s*\d\.\s*正文\s*-->/g;
+  var TG_AFTER_RE = /(?:^|\n)[ \t]*<!--\s*\d\.\s*正文后的格式\s*-->/;
+  function tgCut(s) {
+    const b = lastMatch(s, TG_BODY_RE);
+    const pre = lastMatch(b ? s.slice(0, b.index) : s, TG_PRE_RE);
+    return pre ? pre.index : b ? b.index : -1;
+  }
   var GEMINI_TURN_RE = /<\|im_start\|>\s*gemini[^\n]*\n?[\s\S]*?(?:<\|im_end\|>|$)/gi;
-  var CONTROL_TOKEN_RE = /<\|im_start\|>[^\n]*|<\|(?:im_end|pad|pad_end)\|>/gi;
+  var CONTROL_TOKEN_RE = /<\|im_start\|>[^\n]*|<\|(?:im_end|pad|pad_end)\|>|<-(?:begin|end)-response->/gi;
   function stripControlTurns(s) {
-    if (s.indexOf("<|") < 0) return s;
+    if (s.indexOf("<|") < 0 && s.indexOf("<-") < 0) return s;
     return s.replace(GEMINI_TURN_RE, "").replace(CONTROL_TOKEN_RE, "");
   }
   var THOUGHT_TAGS = ["thinking", "think", "cot", "reasoning", "meow", "think_nya~", "konatan_planning~", "draft_notes", "draft", "preparation"];
@@ -2217,15 +2225,17 @@ ${THEME_CSS}
   var THOUGHT_CLOSE = "</(?:" + THOUGHT_NAMES + ")\\s*>";
   var THOUGHT_BLOCK_RE = new RegExp(THOUGHT_OPEN + "([\\s\\S]*?)" + THOUGHT_CLOSE, "gi");
   var THOUGHT_TAIL_RE = new RegExp(THOUGHT_OPEN + "([\\s\\S]*)$", "i");
-  var BARE_CLOSE_RE = new RegExp("(?:" + THOUGHT_CLOSE + "|<!--\\s*(?:end_of_梳理|1·思考结束|end_of_Subtext_think)\\s*-->|<｜end▁of▁thinking｜>|前尘已定，梦境将演。|我将进行符合需求的创作：|#{1,6}[ \\t]*正式创作|#{1,6}[ \\t]*正文[ \\t]*(?=\\r?\\n|$))", "i");
+  var BARE_CLOSE_RE = new RegExp("(?:" + THOUGHT_CLOSE + "|<!--\\s*(?:end_of_梳理|1·思考结束|end_of_Subtext_think)\\s*-->|<｜end▁of▁thinking｜>|前尘已定，梦境将演。|(?:好的[，,]\\s*)?我将进行符合需求的创作：|#{1,6}[ \\t]*正式创作|#{1,6}[ \\t]*正文[ \\t]*(?=\\r?\\n|$))", "i");
   var HEAD_MARK_RE = /^\s*(?:\[(?:metacognition|love_qkll)\]|<｜begin▁of▁thinking｜>|吾有一梦，今方始筑：?)/i;
   var TIDE_HEAD_RE = /^\s*<基础确认>/i;
   function cleanThought(s) {
-    return s.replace(HEAD_MARK_RE, "").replace(/<!--[\s\S]*?-->/g, "").replace(/<\/[^<>\n]{1,40}>/g, "").replace(/<([^<>\n]{1,40})>/g, "$1").trim();
+    return s.replace(HEAD_MARK_RE, "").replace(new RegExp(THOUGHT_OPEN + "|" + THOUGHT_CLOSE, "gi"), "").replace(/<!--[\s\S]*?-->/g, "").replace(/<\/[^<>\n]{1,40}>/g, "").replace(/<([^<>\n]{1,40})>/g, "$1").trim();
   }
   function splitThought(raw, streaming) {
-    let rest = stripControlTurns(String(raw));
+    let rest = stripControlTurns(String(raw)).replace(/<draft_notes>\s*<draft>/gi, "<draft_notes>").replace(/<\/draft>\s*<\/draft_notes>/gi, "</draft_notes>");
     const thoughts = [];
+    const tg = tgCut(rest);
+    if (tg >= 0) return { thoughts: rest.slice(0, tg).trim() ? [rest.slice(0, tg)] : [], rest: rest.slice(tg) };
     const mainAt = () => {
       const m = lastMainOpen(rest);
       return m ? m.index : -1;
@@ -2316,16 +2326,17 @@ ${THEME_CSS}
     "dream_after_thinking",
     "original",
     "analysis",
-    "safety_check"
+    "safety_check",
+    "SexualScene"
   ];
   var STRIP_RE = new RegExp("<(" + STRIP_TAGS.map(esc).join("|") + ")(?:\\s[^<>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>|$)", "gi");
   var ANY_TAG_RE = /<\/?[A-Za-z_一-鿿][\w\-~:.一-鿿]*(?:\s[^<>]*)?\/?>/g;
-  var TAIL_CUT_RE = /<(options|branches|choice|dream_option|dream_after_format|UpdateVariable)(?:\s[^<>]*)?>(?:(?!<\/\1)[\s\S])*$|<!--(?:(?!-->)[\s\S])*$|<\/?[^<>\s]*$/i;
+  var TAIL_CUT_RE = /<(options|branches|choice|dream_option|w2g|dream_after_format|UpdateVariable)(?:\s[^<>]*)?>(?:(?!<\/\1)[\s\S])*$|<!--(?:(?!-->)[\s\S])*$|<\/?[^<>\s]*$/i;
   function stripNoise(text) {
     return text.replace(/image###[\s\S]*?###/g, "").replace(/<htm1fenge(?:\s[^<>]*)?>([\s\S]*?)(?:<\/htm1fenge\s*>|$)/gi, (m, inner) => {
       const d = inner.match(/<span[^<>]*display:\s*none[^<>]*>([\s\S]*?)<\/span>/i);
       return d ? d[1].trim() : "";
-    }).replace(STRIP_RE, "").replace(/<Q>[\s\S]*?(?:<\/WF>|$)/gi, "").replace(/<!--[\s\S]*?-->/g, "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<br\s*\/?>|<\/paragraph\s*>/gi, "\n").replace(ANY_TAG_RE, "").replace(/^[ \t]*#{1,6}[ \t]*正文[ \t]*(?:\r?\n|$)/gm, "").replace(/^[ \t]*>[ \t]*凝嘤嘤[：:].*(?:\r?\n|$)/gm, "");
+    }).replace(STRIP_RE, "").replace(/<Q>[\s\S]*?(?:<\/WF>|$)/gi, "").replace(/<!--[\s\S]*?-->/g, "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<br\s*\/?>|<\/paragraph\s*>/gi, "\n").replace(ANY_TAG_RE, "").replace(/^[ \t]*#{1,6}[ \t]*正文[ \t]*(?:\r?\n|$)/gm, "").replace(/^[ \t]*>[ \t]*凝嘤嘤[：:].*(?:\r?\n|$)/gm, "").replace(/《end》/g, "");
   }
   function finish(body, depth) {
     return applyDisplayRegexes(stripNoise(tokenizeIllustMarkers(body)), depth).trim();
@@ -2341,24 +2352,34 @@ ${THEME_CSS}
       body = j >= 0 ? body.slice(0, j) : body.replace(TAIL_CUT_RE, "");
       return finish(body, depth);
     }
+    const tg = lastMatch(rest, TG_BODY_RE);
+    if (tg) {
+      let body = rest.slice(tg.index + tg[0].length);
+      const e = body.search(TG_AFTER_RE);
+      body = e >= 0 ? body.slice(0, e) : body.replace(TAIL_CUT_RE, "");
+      return finish(body, depth);
+    }
     if (streaming) return "";
     return finish(rest, depth);
   }
-  var OPTION_TAGS = ["options", "choice", "branches", "dream_option"];
-  var OPTION_PREFIX_RE = /^\s*>?\s*(?:\d+\s*[.、):：]|[A-Za-z]\s*[.、)]|[-*•]|选项[一二三四五六七八九十\d]+\s*[：:]|[①②③④⑤⑥⑦⑧])?\s*(?:[[【][^\]】\n]{1,12}[\]】])?\s*/;
+  var OPTION_TAGS = ["options", "choice", "branches", "dream_option", "w2g"];
+  var OPTION_PREFIX_RE = /^\s*>?\s*(?:\d+\s*[.、):：]|[A-Za-z]\s*[.、):：]|[-*•]|选项[一二三四五六七八九十\d]+\s*[：:]|[①②③④⑤⑥⑦⑧])?\s*(?:[[【][^\]】\n]{1,12}[\]】])?\s*/;
   function extractOptions(raw, depth) {
     if (!raw) return [];
     const s = splitThought(raw, false).rest;
-    let best = null;
+    let inner = null;
     for (const tag of OPTION_TAGS) {
       const m = lastMatch(s, new RegExp("<" + tag + "(?:\\s[^<>]*)?>", "i"));
-      if (m && (!best || m.index > best.index)) best = { index: m.index, end: m.index + m[0].length, tag };
+      if (!m) continue;
+      const body = s.slice(m.index + m[0].length);
+      const j = body.toLowerCase().indexOf("</" + tag + ">");
+      if (j >= 0) {
+        inner = body.slice(0, j);
+        break;
+      }
     }
-    if (!best) return [];
-    const body = s.slice(best.end);
-    const j = body.toLowerCase().indexOf("</" + best.tag + ">");
-    if (j < 0) return [];
-    const text = applyDisplayRegexes(body.slice(0, j), depth).replace(/<summary(?:\s[^<>]*)?>[\s\S]*?<\/summary\s*>/gi, "").replace(ANY_TAG_RE, "");
+    if (inner == null) return [];
+    const text = applyDisplayRegexes(inner, depth).replace(/<summary(?:\s[^<>]*)?>[\s\S]*?<\/summary\s*>/gi, "").replace(ANY_TAG_RE, "");
     return text.split(/\n|\|/).map((l) => l.replace(OPTION_PREFIX_RE, "").trim()).filter(Boolean).slice(0, 10);
   }
 
