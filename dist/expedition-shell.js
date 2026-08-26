@@ -2028,8 +2028,8 @@ ${THEME_CSS}
   }
   function illustMarkerRe() {
     const t = chatu8Tags();
-    const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    let src = esc(t.start) + "[\\s\\S]*?" + esc(t.end);
+    const esc2 = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    let src = esc2(t.start) + "[\\s\\S]*?" + esc2(t.end);
     if (t.start !== "image###") src += "|image###[\\s\\S]*?###";
     return new RegExp(src, "g");
   }
@@ -2184,57 +2184,81 @@ ${THEME_CSS}
   }
 
   // src/adapters/presets.js
-  var THOUGHT_TAG_NAMES = ["thinking", "think", "cot", "reasoning", "meow", "think_nya~", "konatan_planning~", "draft_notes", "draft", "preparation"];
-  var THOUGHT_TAG_RE = THOUGHT_TAG_NAMES.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  var THOUGHT_OPEN_RE = "<(?:" + THOUGHT_TAG_RE + ")>";
-  var THOUGHT_CLOSE_RE = "(?:<\\/(?:" + THOUGHT_TAG_RE + ")>|<!--\\s*(?:end_of_梳理|1·思考结束|end_of_Subtext_think)\\s*-->|我将进行符合需求的创作：|#{1,6}\\s*正式创作)";
-  var THOUGHT_HEAD_RE = /^\s*\[(?:metacognition|love_qkll)\]/i;
-  function bareThoughtMatch(raw) {
-    const m = new RegExp("^([\\s\\S]*?)" + THOUGHT_CLOSE_RE, "i").exec(raw);
-    if (m && !/<maintext>|<content>|<options>/i.test(m[0])) return { bodyEnd: m[1].length, tagEnd: m[0].length };
-    if (THOUGHT_HEAD_RE.test(raw)) {
-      const b = String(raw).search(/<maintext>|<content>/i);
-      if (b > 0) return { bodyEnd: b, tagEnd: b };
+  function esc(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+  function lastMatch(s, re) {
+    const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+    let m, last = null;
+    while (m = g.exec(s)) {
+      last = m;
+      if (!m[0].length) g.lastIndex++;
     }
-    return null;
+    return last;
   }
-  function tideDraftMatch(raw) {
-    if (!/<基础确认>/i.test(raw)) return null;
-    const b = String(raw).search(/<content(?:\s[^>]*)?>/i);
-    return b > 0 ? { bodyEnd: b, tagEnd: b } : null;
+  var MAIN_TAGS = ["maintext", "content", "正文", "dream_body"];
+  var MAIN_OPEN_RE = new RegExp("(?:^|\\n)[ \\t]*<(" + MAIN_TAGS.join("|") + ")(?:\\s[^<>]*)?>", "gi");
+  function lastMainOpen(s) {
+    const m = lastMatch(s, MAIN_OPEN_RE);
+    if (!m) return null;
+    const index = m.index + m[0].indexOf("<");
+    return { index, end: m.index + m[0].length, tag: m[1].toLowerCase() };
   }
-  function stripThink(raw) {
-    const s = String(raw);
-    const afterOpenBased = s.replace(new RegExp(THOUGHT_OPEN_RE + "[\\s\\S]*?" + THOUGHT_CLOSE_RE, "gi"), "").replace(new RegExp(THOUGHT_OPEN_RE + "[\\s\\S]*?(?=<maintext>|<content>)", "i"), "").replace(new RegExp(THOUGHT_OPEN_RE + "[\\s\\S]*$", "i"), "");
-    if (afterOpenBased !== s) return afterOpenBased;
-    const bare = bareThoughtMatch(s);
-    return bare ? s.slice(bare.tagEnd) : s;
+  var DOC_ROOT_RE = /<dream_plot(?:\s[^<>]*)?>/i;
+  var THOUGHT_TAGS = ["thinking", "think", "cot", "reasoning", "meow", "think_nya~", "konatan_planning~", "draft_notes", "draft", "preparation"];
+  var THOUGHT_NAMES = THOUGHT_TAGS.map(esc).join("|");
+  var THOUGHT_OPEN = "<(?:" + THOUGHT_NAMES + ")(?:\\s[^<>]*)?>";
+  var THOUGHT_CLOSE = "</(?:" + THOUGHT_NAMES + ")\\s*>";
+  var THOUGHT_BLOCK_RE = new RegExp(THOUGHT_OPEN + "([\\s\\S]*?)" + THOUGHT_CLOSE, "gi");
+  var THOUGHT_TAIL_RE = new RegExp(THOUGHT_OPEN + "([\\s\\S]*)$", "i");
+  var BARE_CLOSE_RE = new RegExp("(?:" + THOUGHT_CLOSE + "|<!--\\s*(?:end_of_梳理|1·思考结束|end_of_Subtext_think)\\s*-->|<｜end▁of▁thinking｜>|前尘已定，梦境将演。|我将进行符合需求的创作：|#{1,6}[ \\t]*正式创作|#{1,6}[ \\t]*正文[ \\t]*(?=\\r?\\n|$))", "i");
+  var HEAD_MARK_RE = /^\s*(?:\[(?:metacognition|love_qkll)\]|<｜begin▁of▁thinking｜>|吾有一梦，今方始筑：?)/i;
+  var TIDE_HEAD_RE = /^\s*<基础确认>/i;
+  function cleanThought(s) {
+    return s.replace(HEAD_MARK_RE, "").replace(/<!--[\s\S]*?-->/g, "").replace(/<\/[^<>\n]{1,40}>/g, "").replace(/<([^<>\n]{1,40})>/g, "$1").trim();
+  }
+  function splitThought(raw, streaming) {
+    let rest = String(raw);
+    const thoughts = [];
+    const mainAt = () => {
+      const m = lastMainOpen(rest);
+      return m ? m.index : -1;
+    };
+    if (TIDE_HEAD_RE.test(rest)) {
+      const i2 = mainAt();
+      if (i2 > 0) return { thoughts: [rest.slice(0, i2)], rest: rest.slice(i2) };
+      if (streaming) return { thoughts: [rest], rest: "" };
+    }
+    rest = rest.replace(THOUGHT_BLOCK_RE, (m, body) => {
+      thoughts.push(body);
+      return "";
+    });
+    const tail = rest.match(THOUGHT_TAIL_RE);
+    if (tail) {
+      const m = lastMainOpen(tail[1]);
+      if (m) {
+        thoughts.push(tail[1].slice(0, m.index));
+        rest = rest.slice(0, tail.index) + tail[1].slice(m.index);
+      } else {
+        thoughts.push(tail[1]);
+        rest = rest.slice(0, tail.index);
+      }
+    }
+    if (thoughts.length) return { thoughts, rest };
+    const i = mainAt();
+    const c = rest.match(BARE_CLOSE_RE);
+    if (c && (i < 0 || c.index < i)) return { thoughts: [rest.slice(0, c.index)], rest: rest.slice(c.index + c[0].length) };
+    const r = rest.match(DOC_ROOT_RE);
+    if (r && (i < 0 || r.index < i)) return { thoughts: [rest.slice(0, r.index)], rest: rest.slice(r.index + r[0].length) };
+    if (HEAD_MARK_RE.test(rest) && i > 0) return { thoughts: [rest.slice(0, i)], rest: rest.slice(i) };
+    if (streaming && i < 0 && rest.trim()) return { thoughts: [rest], rest: "" };
+    return { thoughts, rest };
   }
   function extractThought(raw, streaming) {
     if (!raw) return "";
-    if (/<基础确认>/i.test(raw)) {
-      const tide = tideDraftMatch(raw);
-      if (tide) return raw.slice(0, tide.bodyEnd).trim();
-      if (streaming) return raw.trim();
-    }
-    const re = new RegExp(THOUGHT_OPEN_RE + "([\\s\\S]*?)" + THOUGHT_CLOSE_RE, "gi");
-    let m, parts = [];
-    while (m = re.exec(raw)) parts.push(m[1].trim());
-    if (!parts.length) {
-      const om = raw.match(new RegExp(THOUGHT_OPEN_RE + "([\\s\\S]*?)(?=<maintext>|<content>)", "i"));
-      if (om) parts.push(om[1].trim());
-      else if (streaming) {
-        const os = raw.match(new RegExp(THOUGHT_OPEN_RE + "([\\s\\S]*)$", "i"));
-        if (os) parts.push(os[1].trim());
-      }
-    }
-    if (!parts.length) {
-      const bare = bareThoughtMatch(raw);
-      if (bare) parts.push(raw.slice(0, bare.bodyEnd).replace(THOUGHT_HEAD_RE, "").trim());
-    }
-    return parts.join("\n\n").trim();
+    return splitThought(raw, streaming).thoughts.map(cleanThought).filter(Boolean).join("\n\n");
   }
-  var PRESET_STRIP_TAGS = [
+  var STRIP_TAGS = [
     "details",
     "summary",
     "tucao",
@@ -2246,11 +2270,10 @@ ${THEME_CSS}
     "guifan",
     "done",
     "disclaimer",
+    "Reference_Example",
     "w2g",
     "VariableCheck",
     "memo",
-    "draft",
-    "Interleaving",
     "choice",
     "safe",
     "theater",
@@ -2263,7 +2286,6 @@ ${THEME_CSS}
     "Shiosai",
     "snow",
     "quote",
-    "htm1fenge",
     "math",
     "finish",
     "WF",
@@ -2271,89 +2293,66 @@ ${THEME_CSS}
     "script",
     "scene",
     "image",
-    "imgthink"
+    "imgthink",
+    "options",
+    "branches",
+    "UpdateVariable",
+    "状态面板",
+    "角色状态面板",
+    "dream_scene",
+    "dream_option",
+    "dream_after_format",
+    "dream_parallel_event",
+    "simple_thinking",
+    "dream_summary",
+    "dream_discuss",
+    "dream_big_discuss",
+    "dream_after_thinking",
+    "original",
+    "analysis"
   ];
-  var PRESET_UNWRAP_TAGS = [
-    "content",
-    "writing_process",
-    "Chain_of_Thought",
-    "SexualScene",
-    "thought",
-    "os",
-    "font",
-    "span",
-    "p",
-    "div",
-    "b",
-    "i",
-    "em",
-    "strong",
-    "hr",
-    "img",
-    "a",
-    "small",
-    "big",
-    "u",
-    "center",
-    "mark",
-    "正文",
-    "images"
-  ];
-  var PRESET_STRIP_RE = new RegExp("<(" + PRESET_STRIP_TAGS.join("|") + ")(?:\\s[^>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>|$)", "gi");
-  var PRESET_UNWRAP_RE = new RegExp("<\\/?(?:" + PRESET_UNWRAP_TAGS.join("|") + ")(?:\\s[^>]*?)?\\s*\\/?>", "gi");
-  function stripPresetNoise(text) {
-    return text.replace(PRESET_STRIP_RE, "").replace(/<(?:角色)?状态面板>[\s\S]*?(?:<\/(?:角色)?状态面板>|$)/g, "").replace(/<Q>[\s\S]*?(?:<\/WF>|$)/gi, "").replace(/<br\s*\/?>/gi, "\n").replace(PRESET_UNWRAP_RE, "").replace(/<!--[\s\S]*?-->/g, "").replace(/^\s*###\s*正文\s*$/gm, "").replace(/image###[\s\S]*?###/g, "").replace(/<\/dream_delete>/gi, "");
+  var STRIP_RE = new RegExp("<(" + STRIP_TAGS.map(esc).join("|") + ")(?:\\s[^<>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>|$)", "gi");
+  var ANY_TAG_RE = /<\/?[A-Za-z_一-鿿][\w\-~:.一-鿿]*(?:\s[^<>]*)?\/?>/g;
+  var TAIL_CUT_RE = /<(options|branches|choice|dream_option|dream_after_format|UpdateVariable)(?:\s[^<>]*)?>(?:(?!<\/\1)[\s\S])*$|<!--(?:(?!-->)[\s\S])*$|<\/?[^<>\s]*$/i;
+  function stripNoise(text) {
+    return text.replace(/image###[\s\S]*?###/g, "").replace(/<htm1fenge(?:\s[^<>]*)?>([\s\S]*?)(?:<\/htm1fenge\s*>|$)/gi, (m, inner) => {
+      const d = inner.match(/<span[^<>]*display:\s*none[^<>]*>([\s\S]*?)<\/span>/i);
+      return d ? d[1].trim() : "";
+    }).replace(STRIP_RE, "").replace(/<Q>[\s\S]*?(?:<\/WF>|$)/gi, "").replace(/<!--[\s\S]*?-->/g, "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<br\s*\/?>|<\/paragraph\s*>/gi, "\n").replace(ANY_TAG_RE, "").replace(/^[ \t]*#{1,6}[ \t]*正文[ \t]*(?:\r?\n|$)/gm, "").replace(/^[ \t]*>[ \t]*凝嘤嘤[：:].*(?:\r?\n|$)/gm, "");
   }
-  var MAIN_TAG_NAMES = ["maintext", "content", "正文", "dream_body"];
-  function findMainBlock(s) {
-    for (const tag of MAIN_TAG_NAMES) {
-      const re = new RegExp("<" + tag + "(?:\\s[^>]*)?>", "gi");
-      let m, last = null;
-      while (m = re.exec(s)) last = m;
-      if (!last) continue;
-      const body = s.slice(last.index + last[0].length);
-      const j = body.toLowerCase().indexOf("</" + tag + ">");
-      return j >= 0 ? { body: body.slice(0, j), closed: true } : { body, closed: false };
-    }
-    return null;
+  function finish(body, depth) {
+    return applyDisplayRegexes(stripNoise(tokenizeIllustMarkers(body)), depth).trim();
   }
   function extractMainText(raw, streaming, depth) {
     if (!raw) return "";
     if (/^\s*(?:<StatusPlaceHolderImpl\s*\/?>\s*)*【开场介绍】/.test(raw)) return "";
-    const s = stripThink(raw);
-    const main = findMainBlock(s);
+    const rest = splitThought(raw, streaming).rest;
+    const main = lastMainOpen(rest);
     if (main) {
-      const body = main.body;
-      if (main.closed) return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(body.replace(/<UpdateVariable>[\s\S]*?<\/UpdateVariable>/gi, ""))), depth).trim();
-      return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(body.replace(/<options>[\s\S]*$/i, "").replace(/<branches>[\s\S]*$/i, "").replace(/<choice>[\s\S]*$/i, "").replace(/<dream_option>[\s\S]*$/i, "").replace(/<UpdateVariable>[\s\S]*$/i, "").replace(/<StatusPlaceHolderImpl\s*\/?>/gi, ""))).replace(/<!--[\s\S]*$/, "").replace(/<\/?[a-z]*$/i, ""), depth).trim();
+      let body = rest.slice(main.end);
+      const j = body.toLowerCase().indexOf("</" + main.tag + ">");
+      body = j >= 0 ? body.slice(0, j) : body.replace(TAIL_CUT_RE, "");
+      return finish(body, depth);
     }
     if (streaming) return "";
-    return applyDisplayRegexes(stripPresetNoise(tokenizeIllustMarkers(s.replace(/<UpdateVariable>[\s\S]*?(?:<\/UpdateVariable>|$)/gi, "").replace(/<options>[\s\S]*?(?:<\/options>|$)/gi, "").replace(/<branches>[\s\S]*?(?:<\/branches>|$)/gi, "").replace(/<choice>[\s\S]*?(?:<\/choice>|$)/gi, "").replace(/<dream_option>[\s\S]*?(?:<\/dream_option>|$)/gi, "").replace(/<StatusPlaceHolderImpl\s*\/?>/gi, ""))), depth).trim();
+    return finish(rest, depth);
   }
+  var OPTION_TAGS = ["options", "choice", "branches", "dream_option"];
+  var OPTION_PREFIX_RE = /^\s*>?\s*(?:\d+\s*[.、):：]|[A-Za-z]\s*[.、)]|[-*•]|选项[一二三四五六七八九十\d]+\s*[：:]|[①②③④⑤⑥⑦⑧])?\s*(?:[[【][^\]】\n]{1,12}[\]】])?\s*/;
   function extractOptions(raw, depth) {
     if (!raw) return [];
-    const s = stripThink(raw);
-    for (const tag of ["options", "choice"]) {
-      const i = s.toLowerCase().lastIndexOf("<" + tag + ">");
-      if (i < 0) continue;
-      const body2 = s.slice(i + tag.length + 2);
-      const j2 = body2.toLowerCase().indexOf("</" + tag + ">");
-      if (j2 < 0) return [];
-      return applyDisplayRegexes(body2.slice(0, j2), depth).split("\n").map((l) => l.replace(/^\s*(?:\d+[.、)]|[-*])\s*/, "").trim()).filter(Boolean).slice(0, 6);
+    const s = splitThought(raw, false).rest;
+    let best = null;
+    for (const tag of OPTION_TAGS) {
+      const m = lastMatch(s, new RegExp("<" + tag + "(?:\\s[^<>]*)?>", "i"));
+      if (m && (!best || m.index > best.index)) best = { index: m.index, end: m.index + m[0].length, tag };
     }
-    const b = s.toLowerCase().lastIndexOf("<branches>");
-    if (b >= 0) {
-      const body2 = s.slice(b + "<branches>".length);
-      const j2 = body2.toLowerCase().indexOf("</branches>");
-      if (j2 < 0) return [];
-      return applyDisplayRegexes(body2.slice(0, j2), depth).split("\n").map((l) => (l.match(/^\s*[A-Za-z][.、)]\s*(.+?)\s*$/) || [])[1]).filter(Boolean).slice(0, 10);
-    }
-    const d = s.toLowerCase().lastIndexOf("<dream_option>");
-    if (d < 0) return [];
-    const body = s.slice(d + "<dream_option>".length);
-    const j = body.toLowerCase().indexOf("</dream_option>");
+    if (!best) return [];
+    const body = s.slice(best.end);
+    const j = body.toLowerCase().indexOf("</" + best.tag + ">");
     if (j < 0) return [];
-    return applyDisplayRegexes(body.slice(0, j), depth).split("|").map((l) => l.trim()).filter(Boolean).slice(0, 6);
+    const text = applyDisplayRegexes(body.slice(0, j), depth).replace(/<summary(?:\s[^<>]*)?>[\s\S]*?<\/summary\s*>/gi, "").replace(ANY_TAG_RE, "");
+    return text.split(/\n|\|/).map((l) => l.replace(OPTION_PREFIX_RE, "").trim()).filter(Boolean).slice(0, 10);
   }
 
   // src/adapters/db-plugin.js
@@ -3477,7 +3476,14 @@ ${THEME_CSS}
     } catch (e) {
       console.warn("[远征前端] 应用酒馆显示正则失败, 按原文显示:", e);
     }
-    return text.replace(/<rt(?:\s[^>]*)?>[\s\S]*?<\/rt>/gi, "").replace(/<\/?ruby(?:\s[^>]*)?>/gi, "");
+    return text.replace(/<ruby(?:\s[^>]*)?>([\s\S]*?)<\/ruby\s*>/gi, (m, inner) => {
+      const rt = [];
+      const base = inner.replace(/<rp(?:\s[^>]*)?>[\s\S]*?<\/rp\s*>/gi, "").replace(/<rt(?:\s[^>]*)?>([\s\S]*?)<\/rt\s*>/gi, (x, t) => {
+        rt.push(t.trim());
+        return "";
+      });
+      return base.trim() + (rt.length ? "（" + rt.join("") + "）" : "");
+    }).replace(/<rt(?:\s[^>]*)?>([\s\S]*?)<\/rt\s*>/gi, "（$1）");
   }
   function optionsHtml(opts) {
     return '<div class="exp-story-options"><div class="exp-story-opthead">行动</div>' + opts.map(
