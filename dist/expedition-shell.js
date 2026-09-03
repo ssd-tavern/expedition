@@ -932,6 +932,7 @@ ${THEME_CSS}
 #exp-shell-root .exp-story-text p{margin:0;}
 #exp-shell-root .exp-story-text p+p{margin-top:.9em;}
 #exp-shell-root .exp-story-text .exp-quote{color:var(--quote,var(--accent,var(--gold-hi)));}
+#exp-shell-root .exp-story-text .exp-inner{color:var(--text-dim,var(--text-faint));}
 @keyframes exp-para-in{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
 #exp-shell-root .exp-para-in{animation:exp-para-in .32s ease-out both;}
 #exp-shell-root .exp-story-status{font-size:12px;color:var(--text-faint);text-align:center;padding:3px 0;min-height:1.2em;letter-spacing:2px;}
@@ -2204,6 +2205,23 @@ ${THEME_CSS}
     const index = m.index + m[0].indexOf("<");
     return { index, end: m.index + m[0].length, tag: m[1].toLowerCase() };
   }
+  function mainBlocks(s) {
+    const last = lastMainOpen(s);
+    if (!last) return null;
+    const re = new RegExp("(?:^|\\n)[ \\t]*<" + last.tag + "(?:\\s[^<>]*)?>", "gi");
+    const opens = [];
+    let m;
+    while (m = re.exec(s)) opens.push({ start: m.index + m[0].indexOf("<"), end: m.index + m[0].length });
+    const close = "</" + last.tag + ">";
+    const lower = s.toLowerCase();
+    return opens.map((o, i) => {
+      const limit = i + 1 < opens.length ? opens[i + 1].start : s.length;
+      const j = lower.indexOf(close, o.end);
+      if (j >= 0 && j < limit) return s.slice(o.end, j).trim();
+      const body = s.slice(o.end, limit);
+      return (i + 1 < opens.length ? body : body.replace(TAIL_CUT_RE, "")).trim();
+    });
+  }
   var DOC_ROOT_RE = /<dream_plot(?:\s[^<>]*)?>/i;
   var TG_PRE_RE = /(?:^|\n)[ \t]*<!--\s*\d\.\s*正文前的格式\s*-->/g;
   var TG_BODY_RE = /(?:^|\n)[ \t]*<!--\s*\d\.\s*正文\s*-->/g;
@@ -2235,18 +2253,20 @@ ${THEME_CSS}
     let rest = stripControlTurns(String(raw)).replace(/<draft_notes>\s*<draft>/gi, "<draft_notes>").replace(/<\/draft>\s*<\/draft_notes>/gi, "</draft_notes>");
     const thoughts = [];
     const tg = tgCut(rest);
-    if (tg >= 0) return { thoughts: rest.slice(0, tg).trim() ? [rest.slice(0, tg)] : [], rest: rest.slice(tg) };
+    if (tg >= 0) return { thoughts: rest.slice(0, tg).trim() ? [rest.slice(0, tg)] : [], rest: rest.slice(tg), closed: true };
     const mainAt = () => {
       const m = lastMainOpen(rest);
       return m ? m.index : -1;
     };
     if (TIDE_HEAD_RE.test(rest)) {
       const i2 = mainAt();
-      if (i2 > 0) return { thoughts: [rest.slice(0, i2)], rest: rest.slice(i2) };
-      if (streaming) return { thoughts: [rest], rest: "" };
+      if (i2 > 0) return { thoughts: [rest.slice(0, i2)], rest: rest.slice(i2), closed: true };
+      if (streaming) return { thoughts: [rest], rest: "", closed: false };
     }
+    let closed = false;
     rest = rest.replace(THOUGHT_BLOCK_RE, (m, body) => {
       thoughts.push(body);
+      if (body.trim() !== "我think完了。") closed = true;
       return "";
     });
     const tail = rest.match(THOUGHT_TAIL_RE);
@@ -2260,19 +2280,19 @@ ${THEME_CSS}
         rest = rest.slice(0, tail.index);
       }
     }
-    if (thoughts.length) return { thoughts, rest };
+    if (thoughts.length) return { thoughts, rest, closed };
     const i = mainAt();
     const c = rest.match(BARE_CLOSE_RE);
-    if (c && (i < 0 || c.index < i)) return { thoughts: [rest.slice(0, c.index)], rest: rest.slice(c.index + c[0].length) };
+    if (c && (i < 0 || c.index < i)) return { thoughts: [rest.slice(0, c.index)], rest: rest.slice(c.index + c[0].length), closed: true };
     const r = rest.match(DOC_ROOT_RE);
-    if (r && (i < 0 || r.index < i)) return { thoughts: [rest.slice(0, r.index)], rest: rest.slice(r.index + r[0].length) };
-    if (HEAD_MARK_RE.test(rest) && i > 0) return { thoughts: [rest.slice(0, i)], rest: rest.slice(i) };
-    if (streaming && i < 0 && rest.trim()) return { thoughts: [rest], rest: "" };
-    return { thoughts, rest };
+    if (r && (i < 0 || r.index < i)) return { thoughts: [rest.slice(0, r.index)], rest: rest.slice(r.index + r[0].length), closed: true };
+    if (HEAD_MARK_RE.test(rest) && i > 0) return { thoughts: [rest.slice(0, i)], rest: rest.slice(i), closed: true };
+    if (streaming && i < 0 && rest.trim()) return { thoughts: [rest], rest: "", closed: false };
+    return { thoughts, rest, closed: false };
   }
   function extractThought(raw, streaming) {
     if (!raw) return "";
-    return splitThought(raw, streaming).thoughts.map(cleanThought).filter(Boolean).join("\n\n");
+    return splitThought(raw, streaming).thoughts.map(cleanThought).filter((t) => t && t !== "我think完了。").join("\n\n");
   }
   var STRIP_TAGS = [
     "details",
@@ -2312,6 +2332,7 @@ ${THEME_CSS}
     "imgthink",
     "options",
     "branches",
+    "SUOT",
     "UpdateVariable",
     "状态面板",
     "角色状态面板",
@@ -2329,14 +2350,14 @@ ${THEME_CSS}
     "safety_check",
     "SexualScene"
   ];
-  var STRIP_RE = new RegExp("<(" + STRIP_TAGS.map(esc).join("|") + ")(?:\\s[^<>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>|$)", "gi");
+  var STRIP_RE = new RegExp("<(" + STRIP_TAGS.map(esc).join("|") + ")(?:\\s[^<>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>[ \\t]*\\r?\\n?|$)", "gi");
   var ANY_TAG_RE = /<\/?[A-Za-z_一-鿿][\w\-~:.一-鿿]*(?:\s[^<>]*)?\/?>/g;
-  var TAIL_CUT_RE = /<(options|branches|choice|dream_option|w2g|dream_after_format|UpdateVariable)(?:\s[^<>]*)?>(?:(?!<\/\1)[\s\S])*$|<!--(?:(?!-->)[\s\S])*$|<\/?[^<>\s]*$/i;
+  var TAIL_CUT_RE = /<(options|branches|choice|dream_option|w2g|SUOT|dream_after_format|UpdateVariable)(?:\s[^<>]*)?>(?:(?!<\/\1)[\s\S])*$|<!--(?:(?!-->)[\s\S])*$|<\/?[^<>\s]*$/i;
   function stripNoise(text) {
-    return text.replace(/image###[\s\S]*?###/g, "").replace(/<htm1fenge(?:\s[^<>]*)?>([\s\S]*?)(?:<\/htm1fenge\s*>|$)/gi, (m, inner) => {
+    return text.replace(/<htm1fenge(?:\s[^<>]*)?>([\s\S]*?)(?:<\/htm1fenge\s*>|$)/gi, (m, inner) => {
       const d = inner.match(/<span[^<>]*display:\s*none[^<>]*>([\s\S]*?)<\/span>/i);
       return d ? d[1].trim() : "";
-    }).replace(STRIP_RE, "").replace(/<Q>[\s\S]*?(?:<\/WF>|$)/gi, "").replace(/<!--[\s\S]*?-->/g, "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<br\s*\/?>|<\/paragraph\s*>/gi, "\n").replace(ANY_TAG_RE, "").replace(/^[ \t]*#{1,6}[ \t]*正文[ \t]*(?:\r?\n|$)/gm, "").replace(/^[ \t]*>[ \t]*凝嘤嘤[：:].*(?:\r?\n|$)/gm, "").replace(/《end》/g, "");
+    }).replace(STRIP_RE, "").replace(/image###[\s\S]*?###/g, "").replace(/<Q>[\s\S]*?(?:<\/WF>|$)/gi, "").replace(/<!--[\s\S]*?-->/g, "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<br\s*\/?>|<\/paragraph\s*>/gi, "\n").replace(ANY_TAG_RE, "").replace(/^[ \t]*#{1,6}[ \t]*正文[ \t]*(?:\r?\n|$)/gm, "").replace(/^[ \t]*#{1,6}[ \t]+(?=\S)/gm, "").replace(/([」』])\{([^{}\n]+)\}/g, (m, q, t) => "（" + t + "）" + q).replace(/^.*[぀-ヿ].*\{[^{}\n]+\}.*$/gm, (line) => line.replace(/\{([^{}\n]+)\}/g, "（$1）")).replace(/^([ \t]*「)([^」\n]*[぀-ヿ][^」\n]*)」[ \t]*\r?\n[ \t]*「([^」\n]+)」[ \t]*(?=\r?\n|$)/gm, "$1$2（$3）」").replace(/^[ \t]*>[ \t]*凝嘤嘤[：:].*(?:\r?\n|$)/gm, "").replace(/^[ \t]*现在开始我的konatan_planning思考。[ \t]*(?:\r?\n|$)/gm, "").replace(/《end》/g, "").replace(/\n{3,}/g, "\n\n");
   }
   function finish(body, depth) {
     return applyDisplayRegexes(stripNoise(tokenizeIllustMarkers(body)), depth).trim();
@@ -2344,14 +2365,10 @@ ${THEME_CSS}
   function extractMainText(raw, streaming, depth) {
     if (!raw) return "";
     if (/^\s*(?:<StatusPlaceHolderImpl\s*\/?>\s*)*【开场介绍】/.test(raw)) return "";
-    const rest = splitThought(raw, streaming).rest;
-    const main = lastMainOpen(rest);
-    if (main) {
-      let body = rest.slice(main.end);
-      const j = body.toLowerCase().indexOf("</" + main.tag + ">");
-      body = j >= 0 ? body.slice(0, j) : body.replace(TAIL_CUT_RE, "");
-      return finish(body, depth);
-    }
+    const split = splitThought(raw, streaming);
+    const rest = split.rest;
+    const blocks = mainBlocks(rest);
+    if (blocks) return finish(blocks.join("\n\n"), depth);
     const tg = lastMatch(rest, TG_BODY_RE);
     if (tg) {
       let body = rest.slice(tg.index + tg[0].length);
@@ -2359,10 +2376,10 @@ ${THEME_CSS}
       body = e >= 0 ? body.slice(0, e) : body.replace(TAIL_CUT_RE, "");
       return finish(body, depth);
     }
-    if (streaming) return "";
-    return finish(rest, depth);
+    if (streaming && !split.closed) return "";
+    return finish(streaming ? rest.replace(TAIL_CUT_RE, "") : rest, depth);
   }
-  var OPTION_TAGS = ["options", "choice", "branches", "dream_option", "w2g"];
+  var OPTION_TAGS = ["options", "choice", "branches", "dream_option", "w2g", "SUOT"];
   var OPTION_PREFIX_RE = /^\s*>?\s*(?:\d+\s*[.、):：]|[A-Za-z]\s*[.、):：]|[-*•]|选项[一二三四五六七八九十\d]+\s*[：:]|[①②③④⑤⑥⑦⑧])?\s*(?:[[【][^\]】\n]{1,12}[\]】])?\s*/;
   function extractOptions(raw, depth) {
     if (!raw) return [];
@@ -2372,14 +2389,14 @@ ${THEME_CSS}
       const m = lastMatch(s, new RegExp("<" + tag + "(?:\\s[^<>]*)?>", "i"));
       if (!m) continue;
       const body = s.slice(m.index + m[0].length);
-      const j = body.toLowerCase().indexOf("</" + tag + ">");
+      const j = body.toLowerCase().indexOf("</" + tag.toLowerCase() + ">");
       if (j >= 0) {
         inner = body.slice(0, j);
         break;
       }
     }
     if (inner == null) return [];
-    const text = applyDisplayRegexes(inner, depth).replace(/<summary(?:\s[^<>]*)?>[\s\S]*?<\/summary\s*>/gi, "").replace(ANY_TAG_RE, "");
+    const text = applyDisplayRegexes(inner, depth).replace(/<summary(?:\s[^<>]*)?>[\s\S]*?<\/summary\s*>/gi, "").replace(/<\/option\s*>/gi, "\n").replace(ANY_TAG_RE, "");
     return text.split(/\n|\|/).map((l) => l.replace(OPTION_PREFIX_RE, "").trim()).filter(Boolean).slice(0, 10);
   }
 
@@ -3578,7 +3595,7 @@ ${THEME_CSS}
   }
   function storyParas(text, streaming) {
     const escaped = escapeHtml(text);
-    const marked = streaming ? escaped : escaped.replace(/“([^”\n]*?)”/g, '<span class="exp-quote">“$1”</span>').replace(/&quot;([^\n]*?)&quot;/g, '<span class="exp-quote">&quot;$1&quot;</span>');
+    const marked = streaming ? escaped : escaped.replace(/“([^”\n]*?)”/g, '<span class="exp-quote">“$1”</span>').replace(/&quot;([^\n]*?)&quot;/g, '<span class="exp-quote">&quot;$1&quot;</span>').replace(/\*\*/g, "").replace(/\*([^*\n]+?)\*/g, '<span class="exp-inner">$1</span>');
     return marked.split(/\n+/).map((s) => s.trim()).filter(Boolean);
   }
   function storyTextHtml(text, streaming) {
@@ -5040,7 +5057,7 @@ ${THEME_CSS}
       console.warn("[航海日志] 变量更新渲染失败", e);
     }
   };
-  onEvent("mag_variable_update_ended", onVarUpdateEnded);
+  onEvent("mag_variable_update_ended", (v, b) => setTimeout(() => onVarUpdateEnded(v, b), 0));
   var onVarInitialized = (variables) => {
     try {
       if (variables && variables.stat_data) setLastStat(_.cloneDeep(_.omit(variables.stat_data, ["$internal"])));
