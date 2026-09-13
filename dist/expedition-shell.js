@@ -1560,8 +1560,9 @@ ${THEME_CSS}
     }).join("\n");
     return (isArr ? "[\n" : "{\n") + body + "\n" + indent + (isArr ? "]" : "}");
   }
-  function renderVarTab() {
-    const panel = getPanel("var");
+  function renderVarSection() {
+    const root = doc.getElementById(SHELL_ID);
+    const panel = root && root.querySelector(".exp-set-vars");
     if (!panel) return;
     const cur = _.omit(currentStat() || {}, ["$internal"]);
     const prevRaw = previousStat();
@@ -1569,16 +1570,16 @@ ${THEME_CSS}
     const changed = /* @__PURE__ */ new Set();
     if (prev) collectChangedPaths(prev, cur, "", changed);
     const sections = [
-      { key: "cur", title: "当前变量 stat_data", html: jsonWithHighlight(cur, "", "", changed), def: true },
+      { key: "cur", title: "当前变量 stat_data", html: jsonWithHighlight(cur, "", "", changed), def: false },
       { key: "prev", title: "上一楼变量", html: prev ? escapeHtml(JSON.stringify(prev, null, 2)) : "暂无上一楼数据", def: false }
     ];
-    panel.innerHTML = '<div class="exp-var">' + sections.map((s) => {
+    panel.innerHTML = sections.map((s) => {
       const open = s.key in varFold ? varFold[s.key] : s.def;
       return `<div class="exp-var-fold${open ? " open" : ""}" data-fold="${s.key}">
         <div class="exp-var-foldhead"><span class="exp-var-arrow">${ICO.chev}</span><span>${s.title}</span></div>
         <pre class="exp-var-foldbody">${s.html}</pre>
       </div>`;
-    }).join("") + "</div>";
+    }).join("");
     panel.querySelectorAll(".exp-var-fold").forEach((fold) => {
       const head = fold.querySelector(".exp-var-foldhead");
       if (head) head.addEventListener("click", () => {
@@ -4446,8 +4447,7 @@ ${THEME_CSS}
     { key: "crew", label: "船员", ico: ICO.crew, render: renderCrewTab, stagSel: ".exp-crew-meters .meter, .exp-crew > :not(.exp-crew-meters)" },
     { key: "hunt", label: "狩猎", ico: ICO.hunt, render: renderHuntTab, stagSel: ".exp-hunt > *, .exp-hunt-lock > *" },
     { key: "map", label: "地图", ico: ICO.map, render: renderMapTab, stagSel: ".exp-char-tabs, .exp-map-body" },
-    { key: "var", label: "变量", ico: ICO.var, render: renderVarTab, stagSel: ".exp-var-fold" },
-    { key: "settings", label: "设置", ico: ICO.gear, render: null, stagSel: ".exp-set h4, .exp-theme-list" }
+    { key: "settings", label: "设置", ico: ICO.gear, render: renderVarSection, stagSel: ".exp-set h4, .exp-theme-list, .exp-var-fold" }
   ];
   var DEFAULT_TAB = "story";
 
@@ -4708,7 +4708,9 @@ ${THEME_CSS}
     <button class="exp-theme-opt ${o.key === motionMode ? "sel" : ""}" data-motion-key="${o.key}">
       <span><span class="exp-theme-name">${o.name}</span><div class="exp-theme-desc">${o.desc}</div></span>
       <span class="exp-theme-check">${ICO.check}</span>
-    </button>`).join("")}</div></div>`;
+    </button>`).join("")}</div>
+  <h4>变量</h4><div class="exp-set-vars exp-var"></div></div>`;
+    renderSafe("settings", renderVarSection);
     panel.querySelectorAll(".exp-theme-opt[data-key]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.key)));
     panel.querySelectorAll(".exp-theme-opt[data-sfw-key]").forEach((b) => b.addEventListener("click", () => applySfwMode(b.dataset.sfwKey)));
     panel.querySelectorAll(".exp-theme-opt[data-mode]").forEach((b) => b.addEventListener("click", () => applyOptionMode(b.dataset.mode)));
