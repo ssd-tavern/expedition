@@ -632,7 +632,7 @@ ${THEME_CSS}
 #exp-shell-root[data-theme="parchment"] .exp-story-turn.user .exp-story-text{background:rgba(var(--accent-rgb),.06);border-color:rgba(var(--accent-rgb),.28);}
 #exp-shell-root[data-theme="ivory"] .exp-story-turn.user .exp-story-text{background:rgba(var(--accent-rgb),.06);border-color:rgba(var(--accent-rgb),.28);}
 #exp-shell-root[data-theme="marble"] .exp-story-turn.user .exp-story-text{background:rgba(var(--accent-rgb),.06);border-color:rgba(var(--accent-rgb),.28);}
-#exp-shell-root{position:fixed;inset:0;height:100vh;height:100dvh;z-index:9000;display:flex;flex-direction:row;font-family:'Noto Serif SC','Source Han Serif SC','Songti SC','SimSun','Georgia',serif;color:var(--text);background:var(--bg);--read-col:700px;}
+#exp-shell-root{position:fixed;inset:0;width:100vw;width:100dvw;height:100vh;height:100dvh;z-index:9000;display:flex;flex-direction:row;font-family:'Noto Serif SC','Source Han Serif SC','Songti SC','SimSun','Georgia',serif;color:var(--text);background:var(--bg);--read-col:700px;--fs-body:17.5px;}
 #exp-shell-root *{box-sizing:border-box;}
 #exp-shell-root ::-webkit-scrollbar{width:8px;height:8px;}
 #exp-shell-root ::-webkit-scrollbar-thumb{background:rgba(var(--gold-rgb),.22);border-radius:4px;}
@@ -928,7 +928,8 @@ ${THEME_CSS}
 @media (hover:hover){
 #exp-shell-root .exp-story-turn.user:hover .exp-story-text{border-color:var(--border-hover);background:rgba(var(--accent-rgb,var(--gold-rgb)),.16);transform:translateY(-2px);cursor:pointer;}
 }
-#exp-shell-root .exp-story-turn.assistant .exp-story-text{white-space:pre-wrap;line-height:2.05;font-size:17.5px;color:var(--text);letter-spacing:.3px;line-break:strict;text-wrap:pretty;}
+#exp-shell-root .exp-story-turn.assistant .exp-story-text{white-space:pre-wrap;line-height:2.05;font-size:var(--fs-body);color:var(--text);letter-spacing:.3px;line-break:strict;text-align:start;}
+#exp-shell-root .exp-story-turn.assistant .exp-story-text p{width:round(down,100%,calc(var(--fs-body) + .3px));margin-inline:auto;}
 #exp-shell-root .exp-story-text p{margin:0;}
 #exp-shell-root .exp-story-text p+p{margin-top:.9em;}
 #exp-shell-root .exp-story-text .exp-quote{color:var(--quote,var(--accent,var(--gold-hi)));}
@@ -1057,7 +1058,7 @@ ${THEME_CSS}
 #exp-shell-root .exp-illust video{max-width:100%;max-height:60vh;border-radius:10px;border:1px solid rgba(var(--gold-rgb),.18);box-shadow:0 4px 20px rgba(var(--sh-rgb),.25);}
 #exp-shell-root .exp-story-text p.exp-ill-slot{margin:1em 0;text-align:center;}
 #exp-shell-root .exp-story-text p.exp-ill-slot:empty{display:none;}
-#exp-shell-root .exp-illust-lb{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;}
+#exp-shell-root .exp-illust-lb{position:absolute;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;}
 #exp-shell-root .exp-illust-lb.exp-lb-in{opacity:1;}
 #exp-shell-root .exp-illust-lb.exp-lb-out{opacity:0;}
 #exp-shell-root .exp-illust-lb .exp-lb-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
@@ -1176,7 +1177,8 @@ ${THEME_CSS}
 #exp-shell-root .exp-tb-item span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #exp-shell-root .exp-story-log{padding:18px 14px 12px;}
 #exp-shell-root .exp-story-turn{margin-bottom:18px;}
-#exp-shell-root .exp-story-turn.assistant .exp-story-text{font-size:15.5px;line-height:1.95;}
+#exp-shell-root{--fs-body:15.5px;}
+#exp-shell-root .exp-story-turn.assistant .exp-story-text{line-height:1.95;}
 #exp-shell-root .exp-story-turn.user .exp-story-text{font-size:14px;line-height:1.8;}
 #exp-shell-root .exp-story-options{margin-bottom:18px;}
 #exp-shell-root .exp-story-opt{font-size:13.5px;padding:8px 8px;gap:10px;}
@@ -1321,11 +1323,9 @@ ${THEME_CSS}
 #exp-shell-root .exp-story-jump.show{opacity:.4;pointer-events:auto;}
 #exp-shell-root .exp-story-jump.show:hover{opacity:.85;}
 #exp-shell-root .exp-story-jump svg{width:24px;height:24px;}
-#exp-shell-root[data-fontsize="lg"]{--read-col:760px;}
-#exp-shell-root[data-fontsize="lg"] .exp-story-turn.assistant .exp-story-text{font-size:19px;}
+#exp-shell-root[data-fontsize="lg"]{--read-col:760px;--fs-body:19px;}
 #exp-shell-root[data-fontsize="lg"] .exp-story-turn.user .exp-story-text{font-size:17px;}
-#exp-shell-root[data-fontsize="xl"]{--read-col:820px;}
-#exp-shell-root[data-fontsize="xl"] .exp-story-turn.assistant .exp-story-text{font-size:20.5px;}
+#exp-shell-root[data-fontsize="xl"]{--read-col:820px;--fs-body:20.5px;}
 #exp-shell-root[data-fontsize="xl"] .exp-story-turn.user .exp-story-text{font-size:18px;}
 
 /* 删楼二次确认武装态 */
