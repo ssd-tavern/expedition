@@ -2305,6 +2305,7 @@ ${THEME_CSS}
     "progress",
     "current_event",
     "advice",
+    "Speech",
     "htmlcontent",
     "guifan",
     "done",
