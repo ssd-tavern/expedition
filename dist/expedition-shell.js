@@ -2383,6 +2383,42 @@ ${THEME_CSS}
     if (streaming && !split.closed) return "";
     return finish(streaming ? rest.replace(TAIL_CUT_RE, "") : rest, depth);
   }
+  var ADVICE_CONTINUE = "按照advice继续吧。";
+  var ADVICE_BLOCK_RE = /<advice\b[^>]*>((?:(?!<advice\b|<\/(?:konatan_planning(?:~[^>]*)?|details|script|think(?:ing)?)\s*>)[\s\S])*?)<\/advice\s*>/gi;
+  function isAdviceMoved(m) {
+    return !!m && m.role === "user" && String(m.message).trim() === ADVICE_CONTINUE;
+  }
+  function adviceMeta(m) {
+    const ex = m && m.extra;
+    const meta = ex && (ex.izumi_advice || ex.extra && ex.extra.izumi_advice);
+    return meta && typeof meta.text === "string" ? meta : null;
+  }
+  function prevAssistantFloor(mid) {
+    for (let i = mid - 1; i >= 0 && i >= mid - 5; i--) {
+      const p = getChatMessages(i)[0];
+      if (p && p.role !== "user") return p;
+    }
+    return null;
+  }
+  function userFloorText(m, prev) {
+    if (!isAdviceMoved(m)) return String(m.message);
+    const meta = adviceMeta(m);
+    if (meta) return meta.text;
+    const p = prev === void 0 ? prevAssistantFloor(m.message_id) : prev;
+    const last = p && p.role !== "user" ? lastMatch(String(p.message), ADVICE_BLOCK_RE) : null;
+    return last ? last[1].trim() : String(m.message);
+  }
+  function adviceMoveEdits(m, text) {
+    const p = prevAssistantFloor(m.message_id);
+    if (!p) return [{ message_id: m.message_id, message: text }];
+    const src = String(p.message);
+    const last = lastMatch(src, ADVICE_BLOCK_RE);
+    const block = "<advice>" + text + "</advice>";
+    const next = last ? src.slice(0, last.index) + block + src.slice(last.index + last[0].length) : src.replace(/\s*$/, "") + "\n" + block;
+    const old = adviceMeta(m);
+    const extra = Object.assign({}, m.extra || {}, { izumi_advice: { version: 1, text, assistantId: p.message_id, revision: (old ? old.revision || 0 : 0) + 1 } });
+    return [{ message_id: p.message_id, message: next }, { message_id: m.message_id, message: ADVICE_CONTINUE, extra }];
+  }
   var OPTION_TAGS = ["options", "choice", "branches", "dream_option", "w2g", "SUOT"];
   var OPTION_PREFIX_RE = /^\s*>?\s*(?:\d+\s*[.、):：]|[A-Za-z]\s*[.、):：]|[-*•]|选项[一二三四五六七八九十\d]+\s*[：:]|[①②③④⑤⑥⑦⑧])?\s*(?:[[【][^\]】\n]{1,12}[\]】])?\s*/;
   function extractOptions(raw, depth) {
@@ -2676,15 +2712,18 @@ ${THEME_CSS}
       await closeUserEdit(true);
       if (editState) return;
     }
-    let raw = null;
+    let raw = null, moved = null;
     try {
       const m = getChatMessages(mid)[0];
-      if (m && m.role === "user") raw = userDisplayText(m.message);
+      if (m && m.role === "user") {
+        raw = userDisplayText(userFloorText(m));
+        if (isAdviceMoved(m)) moved = m;
+      }
     } catch (e) {
       dbg("readUserMsg", e);
     }
     if (raw == null) return;
-    editState = { mid, draft: raw };
+    editState = { mid, draft: raw, moved };
     const log = doc.getElementById(SEL.storyLog);
     if (log) {
       applyUserEdit(log);
@@ -2698,8 +2737,9 @@ ${THEME_CSS}
     const text = String(editState.draft == null ? "" : editState.draft).trim();
     if (save && text) {
       try {
-        await setChatMessages([{ message_id: mid, message: text }], { refresh: "affected" });
-        storyCacheDrop(mid);
+        const edits = editState.moved ? adviceMoveEdits(editState.moved, text) : [{ message_id: mid, message: text }];
+        await setChatMessages(edits, { refresh: "affected" });
+        edits.forEach((e) => storyCacheDrop(e.message_id));
       } catch (e) {
         setStoryStatus("出错: " + (e && e.message ? e.message : e));
         return;
@@ -3074,12 +3114,14 @@ ${THEME_CSS}
     if (!ex) return "";
     return ex.reasoning || ex.extra && ex.extra.reasoning || "";
   }
-  function cachedTurnData(m) {
+  function cachedTurnData(m, prev) {
     let data = storyHtmlCache.get(m.message_id);
     if (m.role === "user") {
       if (data === void 0) {
-        data = { role: "user", text: userDisplayText(m.message), thought: "", mid: m.message_id };
-        storyHtmlCache.set(m.message_id, data);
+        const moved = isAdviceMoved(m);
+        const src = userFloorText(m, prev);
+        data = { role: "user", text: userDisplayText(src), thought: "", mid: m.message_id };
+        if (!moved || src !== ADVICE_CONTINUE) storyHtmlCache.set(m.message_id, data);
       }
       return data;
     }
@@ -3251,8 +3293,10 @@ ${THEME_CSS}
   function patchStoryLog(log, messages, coldStart) {
     const desiredMids = /* @__PURE__ */ new Set();
     const desiredData = [];
+    let prev = null;
     for (const m of messages) {
-      const data = cachedTurnData(m);
+      const data = cachedTurnData(m, prev);
+      prev = m;
       if (!data.text) continue;
       desiredMids.add(m.message_id);
       desiredData.push({ mid: m.message_id, data });
