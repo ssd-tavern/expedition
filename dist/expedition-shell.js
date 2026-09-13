@@ -2245,6 +2245,7 @@ ${THEME_CSS}
   var THOUGHT_BLOCK_RE = new RegExp(THOUGHT_OPEN + "([\\s\\S]*?)" + THOUGHT_CLOSE, "gi");
   var THOUGHT_TAIL_RE = new RegExp(THOUGHT_OPEN + "([\\s\\S]*)$", "i");
   var BARE_CLOSE_RE = new RegExp("(?:" + THOUGHT_CLOSE + "|<!--\\s*(?:end_of_梳理|1·思考结束|end_of_Subtext_think)\\s*-->|<｜end▁of▁thinking｜>|前尘已定，梦境将演。|(?:好的[，,]\\s*)?我将进行符合需求的创作：|#{1,6}[ \\t]*正式创作|#{1,6}[ \\t]*正文[ \\t]*(?=\\r?\\n|$))", "i");
+  var FAKE_THINK = /* @__PURE__ */ new Set(["我think完了。", "Thought budget exceeded."]);
   var HEAD_MARK_RE = /^\s*(?:\[(?:metacognition|love_qkll)\]|<｜begin▁of▁thinking｜>|吾有一梦，今方始筑：?)/i;
   var TIDE_HEAD_RE = /^\s*<基础确认>/i;
   function cleanThought(s) {
@@ -2267,7 +2268,7 @@ ${THEME_CSS}
     let closed = false;
     rest = rest.replace(THOUGHT_BLOCK_RE, (m, body) => {
       thoughts.push(body);
-      if (body.trim() !== "我think完了。") closed = true;
+      if (!FAKE_THINK.has(body.trim())) closed = true;
       return "";
     });
     const tail = rest.match(THOUGHT_TAIL_RE);
@@ -2293,7 +2294,7 @@ ${THEME_CSS}
   }
   function extractThought(raw, streaming) {
     if (!raw) return "";
-    return splitThought(raw, streaming).thoughts.map(cleanThought).filter((t) => t && t !== "我think完了。").join("\n\n");
+    return splitThought(raw, streaming).thoughts.map(cleanThought).filter((t) => t && !FAKE_THINK.has(t)).join("\n\n");
   }
   var STRIP_TAGS = [
     "details",
@@ -2303,6 +2304,7 @@ ${THEME_CSS}
     "konatan_chat",
     "progress",
     "current_event",
+    "advice",
     "htmlcontent",
     "guifan",
     "done",
@@ -2354,8 +2356,9 @@ ${THEME_CSS}
   var STRIP_RE = new RegExp("<(" + STRIP_TAGS.map(esc).join("|") + ")(?:\\s[^<>]*)?>[\\s\\S]*?(?:<\\/\\1\\s*>[ \\t]*\\r?\\n?|$)", "gi");
   var ANY_TAG_RE = /<\/?[A-Za-z_一-鿿][\w\-~:.一-鿿]*(?:\s[^<>]*)?\/?>/g;
   var TAIL_CUT_RE = /<(options|branches|choice|dream_option|w2g|SUOT|dream_after_format|UpdateVariable)(?:\s[^<>]*)?>(?:(?!<\/\1)[\s\S])*$|<!--(?:(?!-->)[\s\S])*$|<\/?[^<>\s]*$/i;
+  var CAT_INNER_RE = /<details(?:\s[^<>]*)?>\s*<summary(?:\s[^<>]*)?>\s*内心\s*[-－—–:：]\s*([^<>\n]*?)\s*<\/summary\s*>([\s\S]*?)<\/details\s*>[ \t]*\r?\n?/gi;
   function stripNoise(text) {
-    return text.replace(/<htm1fenge(?:\s[^<>]*)?>([\s\S]*?)(?:<\/htm1fenge\s*>|$)/gi, (m, inner) => {
+    return text.replace(CAT_INNER_RE, (m, who, body) => body.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => "*" + who + "：" + l + "*").join("\n") + "\n").replace(/<htm1fenge(?:\s[^<>]*)?>([\s\S]*?)(?:<\/htm1fenge\s*>|$)/gi, (m, inner) => {
       const d = inner.match(/<span[^<>]*display:\s*none[^<>]*>([\s\S]*?)<\/span>/i);
       return d ? d[1].trim() : "";
     }).replace(STRIP_RE, "").replace(/image###[\s\S]*?###/g, "").replace(/<Q>[\s\S]*?(?:<\/WF>|$)/gi, "").replace(/<!--[\s\S]*?-->/g, "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<br\s*\/?>|<\/paragraph\s*>/gi, "\n").replace(ANY_TAG_RE, "").replace(/^[ \t]*#{1,6}[ \t]*正文[ \t]*(?:\r?\n|$)/gm, "").replace(/^[ \t]*#{1,6}[ \t]+(?=\S)/gm, "").replace(/([」』])\{([^{}\n]+)\}/g, (m, q, t) => "（" + t + "）" + q).replace(/^.*[぀-ヿ].*\{[^{}\n]+\}.*$/gm, (line) => line.replace(/\{([^{}\n]+)\}/g, "（$1）")).replace(/^([ \t]*「)([^」\n]*[぀-ヿ][^」\n]*)」[ \t]*\r?\n[ \t]*「([^」\n]+)」[ \t]*(?=\r?\n|$)/gm, "$1$2（$3）」").replace(/^[ \t]*>[ \t]*凝嘤嘤[：:].*(?:\r?\n|$)/gm, "").replace(/^[ \t]*现在开始我的konatan_planning思考。[ \t]*(?:\r?\n|$)/gm, "").replace(/《end》/g, "").replace(/\n{3,}/g, "\n\n");
